@@ -1,8 +1,8 @@
-<a class="skip-link" href="#main-content">Skip to content</a>
+<a class="skip-link" [routerLink]="[]" fragment="main-content">Skip to content</a>
 
 <header class="top-bar">
   <div class="top-bar__inner">
-    <a class="top-bar__brand" routerLink="/" aria-label="MetaFrame home">
+    <a class="top-bar__brand" [routerLink]="auth.isLoggedIn() ? '/home' : '/login'" aria-label="GSUIF home">
       <!-- <svg class="top-bar__brand-mark" viewBox="0 0 160 160" focusable="false" aria-hidden="true">
         <path d="M78 10l10 18 20-4 4 20 19 7-8 19 13 12-13 13 8 19-19 7-4 20-20-4-10 18-17-11-19 4-5-20-18-7 8-19-13-13 13-12-8-19 18-7 5-20 19 4z"></path>
         <circle cx="78" cy="82" r="38"></circle>
@@ -16,9 +16,11 @@
       <span>MetaFrame</span>
     </a>
     <nav class="top-bar__nav" aria-label="Primary">
-      <app-theme-toggle></app-theme-toggle>
+      <a *ngIf="auth.isLoggedIn()" class="top-bar__link" routerLink="/home" routerLinkActive="top-bar__link--active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <a *ngIf="auth.isLoggedIn()" class="top-bar__link" routerLink="/projects" routerLinkActive="top-bar__link--active">Projects</a>
+      <a *ngIf="!auth.isLoggedIn()" class="top-bar__link" routerLink="/login" routerLinkActive="top-bar__link--active">Sign in</a>
       <span *ngIf="auth.isLoggedIn()" class="top-bar__user">{{ auth.getUsername() }}</span>
-      <button *ngIf="auth.isLoggedIn()" type="button" class="button button--secondary" (click)="auth.logout()">
+      <button *ngIf="auth.isLoggedIn()" type="button" class="button button--logout" (click)="auth.logout()">
         Logout
       </button>
     </nav>

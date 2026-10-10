@@ -4,6 +4,7 @@ import { finalize } from 'rxjs';
 import { ApiException } from '../../../core/models/api-response.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoadingService } from '../../../core/services/loading.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
   selector: 'app-login',
@@ -15,6 +16,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly loading = inject(LoadingService);
+  private readonly notifications = inject(NotificationService);
 
   @ViewChild('usernameInput') private readonly usernameInput?: ElementRef<HTMLInputElement>;
   @ViewChild('passwordInput') private readonly passwordInput?: ElementRef<HTMLInputElement>;
@@ -25,14 +27,12 @@ export class LoginComponent {
   });
 
   fieldErrors: Record<string, string> = {};
-  formError = '';
-
   get isBusy(): boolean {
     return this.loading.isBusy('login');
   }
 
   submit(): void {
-    this.formError = '';
+    this.notifications.clear();
     this.fieldErrors = {};
 
     if (this.form.invalid) {
@@ -69,20 +69,12 @@ export class LoginComponent {
       : new ApiException(0, 'Unable to reach the server.', null);
 
     this.fieldErrors = apiError.errors ?? {};
-    this.formError = this.loginMessage(apiError);
+    this.notifications.show(apiError.clientMessage || 'Sign-in failed.');
     this.form.controls.password.reset('');
 
     if (apiError.statusCode === 400 && Object.keys(this.fieldErrors).length > 0) {
       this.focusFirstInvalid();
     }
-  }
-
-  private loginMessage(error: ApiException): string {
-    if (error.statusCode === 400 || error.statusCode === 401) {
-      return 'Invalid username or password';
-    }
-
-    return error.clientMessage || 'Sign-in failed.';
   }
 
   private focusFirstInvalid(): void {

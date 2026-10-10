@@ -5,6 +5,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent, ProtectedPlaceholderComponent } from './app.component';
 import { CoreModule } from './core/core.module';
 import { AuthModule } from './features/auth/auth.module';
+import { HomeModule } from './features/home/home.module';
 import { SharedModule } from './shared/shared.module';
 
 @NgModule({
@@ -17,6 +18,7 @@ import { SharedModule } from './shared/shared.module';
     AppRoutingModule,
     CoreModule,
     AuthModule,
+    HomeModule,
     SharedModule
   ],
   providers: [

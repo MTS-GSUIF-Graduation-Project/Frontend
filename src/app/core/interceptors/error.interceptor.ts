@@ -12,10 +12,13 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(request).pipe(
     catchError(error => {
-      if (error instanceof HttpErrorResponse && error.status === 401 && !isLoginRequest(request.method, request.url)) {
-        auth.clearSession();
-        notifications.show(error.error?.clientMessage || 'Your session has expired. Sign in again.');
-        void router.navigate(['/login']);
+      if (error instanceof HttpErrorResponse && !isLoginRequest(request.method, request.url)) {
+        notifications.show(error.error?.clientMessage || fallbackMessage(error.status));
+
+        if (error.status === 401) {
+          auth.clearSession();
+          void router.navigate(['/login']);
+        }
       }
 
       return throwError(() => error);
@@ -25,4 +28,8 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
 
 function isLoginRequest(method: string, url: string): boolean {
   return method.toUpperCase() === 'POST' && url.endsWith('/api/auth/login');
+}
+
+function fallbackMessage(status: number): string {
+  return status === 0 ? 'Unable to reach the server.' : 'An unexpected error occurred.';
 }

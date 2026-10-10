@@ -1,0 +1,41 @@
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__visual" aria-hidden="true">
+    <div class="hero__glow hero__glow--pink"></div>
+    <div class="hero__glow hero__glow--purple"></div>
+    <svg viewBox="0 0 1100 520" preserveAspectRatio="none" focusable="false">
+      <defs>
+        <linearGradient id="hero-trail-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" class="hero__stop hero__stop--orange-fade"></stop>
+          <stop offset="34%" class="hero__stop hero__stop--orange"></stop>
+          <stop offset="68%" class="hero__stop hero__stop--purple"></stop>
+          <stop offset="100%" class="hero__stop hero__stop--pink-fade"></stop>
+        </linearGradient>
+        <filter id="hero-neon-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="7" result="hero-blur"></feGaussianBlur>
+          <feMerge>
+            <feMergeNode in="hero-blur"></feMergeNode>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+          </feMerge>
+        </filter>
+      </defs>
+      <g filter="url(#hero-neon-glow)">
+        <path class="hero__trail hero__trail--one" pathLength="1" d="M -80 90 C 220 -40 560 590 1190 250"></path>
+        <path class="hero__trail hero__trail--two" pathLength="1" d="M -110 145 C 250 10 610 520 1200 195"></path>
+        <path class="hero__trail hero__trail--three" pathLength="1" d="M -70 45 C 330 -5 590 490 1170 315"></path>
+      </g>
+    </svg>
+  </div>
+
+  <div class="hero__content">
+    <p class="hero__eyebrow">Metadata-driven development</p>
+    <h2 id="hero-title">Metadata becomes <span>structure.</span></h2>
+    <p class="hero__welcome">{{ welcomeMessage }}</p>
+    <p class="hero__copy">
+      GSUIF connects versioned metadata and company standards with template-based generation and build validation to produce frontend source that developers can edit. This frontend currently provides authentication and protected navigation.
+    </p>
+    <div class="hero__actions">
+      <a class="hero__action hero__action--primary" routerLink="/projects">Browse Metadata</a>
+      <a class="hero__action hero__action--secondary" [routerLink]="[]" fragment="platform-workflow">Explore Platform</a>
+    </div>
+  </div>
+</section>

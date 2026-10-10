@@ -39,25 +39,10 @@
           </p>
         </div>
 
-        <p class="form-error" aria-live="polite">{{ formError }}</p>
-
         <button type="submit" class="button button--primary" [disabled]="isBusy">
           {{ isBusy ? 'Signing in' : 'Sign in' }}
         </button>
       </form>
-    </div>
-
-    <div class="login-card__mark" aria-hidden="true">
-      <!-- <svg class="gear-mark gear-mark--front" viewBox="20 30 90 120" preserveAspectRatio="xMidYMid meet" focusable="false" aria-hidden="true" pointer-events="none">
-        <path class="gear-shape" ></path>
-        <circle class="gear-hole" cx="78" cy="82" r="38"></circle>
-        <path class="gear-code" d="M61 69L46 82l15 13M96 69l15 13-15 13M85 63l-13 38"></path>
-      </svg> -->
-      <!-- <svg class="gear-mark gear-mark--front" viewBox="0 0 160 160" preserveAspectRatio="xMidYMid meet" focusable="false" aria-hidden="true" pointer-events="none">
-        <path class="gear-shape" d="M78 10l10 18 20-4 4 20 19 7-8 19 13 12-13 13 8 19-19 7-4 20-20-4-10 18-17-11-19 4-5-20-18-7 8-19-13-13 13-12-8-19 18-7 5-20 19 4z"></path>
-        <circle class="gear-hole" cx="78" cy="82" r="38"></circle>
-        <path class="gear-code" d="M61 69L46 82l15 13M96 69l15 13-15 13M85 63l-13 38"></path>
-      </svg> -->
     </div>
   </div>
 </section>

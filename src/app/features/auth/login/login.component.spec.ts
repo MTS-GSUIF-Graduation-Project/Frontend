@@ -5,6 +5,7 @@ import { SharedModule } from '../../../shared/shared.module';
 import { ApiException } from '../../../core/models/api-response.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoadingService } from '../../../core/services/loading.service';
+import { NotificationService } from '../../../core/services/notification.service';
 import { LoginComponent } from './login.component';
 
 describe('LoginComponent', () => {
@@ -58,17 +59,16 @@ describe('LoginComponent', () => {
     loading.end('login');
   });
 
-  it('shows exactly one inline login error on invalid credentials', () => {
+  it('shows the backend login message once through the shared notification service', () => {
+    const notifications = TestBed.inject(NotificationService);
     auth.login.mockReturnValue(throwError(() => new ApiException(401, 'Backend credential text', null)));
     fixture.componentInstance.form.setValue({ username: 'developer', password: 'bad' });
 
     clickSubmit();
     fixture.detectChanges();
 
-    const errors = fixture.nativeElement.querySelectorAll('.form-error') as NodeListOf<HTMLElement>;
-    expect(errors).toHaveLength(1);
-    expect(errors[0].textContent).toContain('Invalid username or password');
-    expect(fixture.nativeElement.textContent).not.toContain('Backend credential text');
+    expect(notifications.message()).toBe('Backend credential text');
+    expect(fixture.nativeElement.querySelector('.form-error')).toBeNull();
   });
 
   function clickSubmit(): void {

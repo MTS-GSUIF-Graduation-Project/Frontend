@@ -18,8 +18,8 @@ export class AppComponent {
   standalone: false,
   template: `
     <section class="route-surface" aria-labelledby="page-title">
-      <app-page-header title="Home"></app-page-header>
-      <p>Protected route ready.</p>
+      <app-page-header title="Projects"></app-page-header>
+      <p>The metadata browser is planned for SCRUM-71.</p>
     </section>
   `
 })
