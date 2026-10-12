@@ -41,7 +41,7 @@ describe('AppComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.top-bar__user')).toBeNull();
     expect(compiled.querySelector('button.button--logout')).toBeNull();
-    expect(compiled.querySelector('app-theme-toggle')).toBeNull();
+    expect(compiled.querySelector('app-theme-toggle')).not.toBeNull();
     expect(compiled.querySelector('.top-bar__link')?.textContent).toContain('Sign in');
   });
 
@@ -61,7 +61,7 @@ describe('AppComponent', () => {
     const logoutButton = compiled.querySelector<HTMLButtonElement>('button.button--logout');
 
     expect(compiled.querySelector('.top-bar__user')?.textContent).toContain('Ada Lovelace');
-    expect(logoutButton?.textContent).toContain('Sign out');
+    expect(logoutButton?.textContent).toContain('Logout');
     expect(Array.from(compiled.querySelectorAll('.top-bar__link')).map(link => link.textContent?.trim())).toEqual(['Home', 'Projects']);
 
     logoutButton?.click();
@@ -70,7 +70,7 @@ describe('AppComponent', () => {
     expect(logout).toHaveBeenCalledWith();
   });
 
-  it('renders the compact home for a valid unexpired session', async () => {
+  it('renders the landing home for a valid unexpired session', async () => {
     sessionStorage.setItem('gsuif.auth', JSON.stringify({
       token: jwtWithExp(futureExp()),
       tokenType: 'Bearer',
@@ -87,9 +87,10 @@ describe('AppComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(router.url).toBe('/home');
     expect(compiled.querySelector('app-home')).not.toBeNull();
-    expect(compiled.querySelector('.home__welcome')?.textContent).toContain('Welcome, Ada Lovelace.');
-    expect(compiled.querySelector('app-home button')?.textContent).toContain('Coming soon');
-    expect(compiled.querySelector('#workflow-title')).toBeNull();
+    expect(compiled.querySelector('.hero__welcome')?.textContent).toContain('Welcome, Ada Lovelace.');
+    expect(compiled.querySelector('#capabilities-title')?.textContent).toContain('What GSUIF does');
+    expect(compiled.querySelector('#workflow-title')?.textContent).toContain('From metadata to editable code');
+    expect(compiled.querySelector('#final-cta-title')?.textContent).toContain('Explore your metadata structure.');
   });
 
   it('redirects /home to login when the session is missing', async () => {

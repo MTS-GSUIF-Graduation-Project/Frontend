@@ -7,14 +7,29 @@
   --color-bg-gradient: var(--color-bg);
   --color-surface: #FFFFFF;
   --color-line: #D5D5D5;
-  --color-brand-gradient: var(--color-primary);
+  --color-transparent: rgba(0, 0, 0, 0);
+  --color-brand-gradient: linear-gradient(110deg, #A0332B, #C34E46);
   --color-top-bar-bg: var(--color-surface);
   --color-top-bar-ink: #FFFFFF;
   --color-top-bar-muted: var(--color-muted);
-  --color-nav-pill-bg: #F8E8E6;
+  --color-nav-pill-bg: #7E2822;
   --color-nav-pill-line: var(--color-line);
-  --color-accent-ink: var(--color-ink);
+  --color-accent-ink: var(--color-primary);
   --color-accent-soft: #F8E8E6;
+  --color-brand-pink: #F5C6C1;
+  --color-brand-purple: #F4E4E2;
+  --color-brand-pink-glow: rgba(195, 78, 70, 0.32);
+  --color-brand-purple-glow: rgba(255, 255, 255, 0.14);
+  --color-hero-bg: #2F373D;
+  --color-hero-surface: #A0332B;
+  --color-hero-ink: #FFFFFF;
+  --color-hero-muted: #F4E4E2;
+  --color-hero-line: rgba(255, 255, 255, 0.28);
+  --color-auth-plane: rgba(160, 51, 43, 0.05);
+  --color-auth-line: #B8706A;
+  --color-auth-line-soft: rgba(160, 51, 43, 0.18);
+  --color-auth-card-glow: rgba(195, 78, 70, 0.16);
+  --color-auth-backdrop-glow: rgba(160, 51, 43, 0.3);
   --color-field-bg: #FFFFFF;
   --color-danger: #8C1D18;
   --color-danger-bg: #FDECEA;
@@ -28,8 +43,8 @@
   --color-theme-switch-knob: #FFFFFF;
   --color-theme-switch-icon: #2F373D;
   --color-theme-switch-glow: rgba(47, 55, 61, 0.12);
-  --shadow-top-bar: none;
-  --shadow-login: 0 8px 24px rgba(47, 55, 61, 0.08);
+  --shadow-top-bar: 0 10px 30px rgba(47, 55, 61, 0.12);
+  --shadow-login: 0 28px 80px rgba(47, 55, 61, 0.28);
 
   --font-ui: "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -58,14 +73,16 @@
   --size-loading-bar: 4px;
   --json-max-height: 24rem;
   --content-max-width: 1120px;
-  --login-max-width: 24rem;
-  --login-form-max-width: 100%;
+  --login-max-width: 47rem;
+  --login-form-max-width: 320px;
 
   --duration-route: 160ms;
   --duration-banner: 160ms;
   --duration-snapshot: 120ms;
   --duration-hover: 120ms;
   --duration-theme: 180ms;
+  --duration-decoration: 4600ms;
+  --duration-hero-trail: 14000ms;
   --ease-standard: ease-out;
   --motion-distance-banner: 8px;
 }
@@ -78,8 +95,8 @@
   --color-surface: #2A3136;
   --color-line: #4A545C;
   --color-top-bar-bg: var(--color-surface);
-  --color-top-bar-ink: #FFFFFF;
-  --color-accent-ink: var(--color-ink);
+  --color-top-bar-ink: #1E2428;
+  --color-accent-ink: #F4B4AE;
   --color-field-bg: #2A3136;
   --color-danger: #F4B4AE;
   --color-danger-bg: #4A2422;
@@ -88,14 +105,21 @@
   --color-ok: #9DDEB8;
   --color-ok-bg: #1A3A2A;
   --color-hover-row: #343C42;
-  --color-nav-pill-bg: #3A2A28;
+  --color-nav-pill-bg: #F8E8E6;
   --color-nav-pill-line: var(--color-line);
+  --color-hero-bg: #1E2428;
+  --color-auth-plane: rgba(244, 180, 174, 0.05);
+  --color-auth-line: #8A949C;
+  --color-auth-line-soft: rgba(244, 180, 174, 0.16);
+  --color-auth-card-glow: rgba(244, 180, 174, 0.12);
+  --color-auth-backdrop-glow: rgba(0, 0, 0, 0.32);
+  --shadow-top-bar: 0 1px 2px rgba(0, 0, 0, 0.42);
   --color-theme-switch-track: #3A4248;
   --color-theme-switch-track-active: #C34E46;
   --color-theme-switch-knob: #F7F7F7;
   --color-theme-switch-icon: #1E2428;
   --color-theme-switch-glow: rgba(0, 0, 0, 0.28);
-  --shadow-login: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-login: 0 1px 2px rgba(0, 0, 0, 0.42);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -105,5 +129,6 @@
     --duration-snapshot: 0ms;
     --duration-hover: 0ms;
     --duration-theme: 0ms;
+    --duration-decoration: 0ms;
   }
 }

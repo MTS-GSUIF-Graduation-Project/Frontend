@@ -1,36 +1,92 @@
 .login-route {
-  display: flex;
-  justify-content: center;
+  display: grid;
   width: 100%;
-  min-height: calc(100dvh - 4.5rem);
-  padding: var(--space-32) var(--space-24) var(--space-48);
-  background: var(--color-bg);
+  min-height: calc(100dvh - 4rem);
+  padding: var(--space-48) var(--space-24);
+  /* background: var(--color-bg-gradient); */
+  background:
+    radial-gradient(circle at 16% 24%, var(--color-brand-purple-glow), transparent 34%),
+    radial-gradient(circle at 84% 72%, var(--color-brand-pink-glow), transparent 40%),
+    linear-gradient(145deg, var(--color-hero-surface), var(--color-hero-bg));
+  place-items: center;
 }
 
 .login-card {
-  width: min(100%, var(--login-max-width));
-  padding: var(--space-32) var(--space-24);
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-line);
-  border-radius: var(--radius-surface);
+  position: relative;
+  display: grid;
+  width: min(100%, 640px);
+  min-height: clamp(28rem, 70dvh, 31rem);
+  overflow: hidden;
+  background: var(--color-bg-gradient);
+  /* background:
+    radial-gradient(circle at 16% 24%, var(--color-brand-purple-glow), transparent 34%),
+    radial-gradient(circle at 84% 72%, var(--color-brand-pink-glow), transparent 40%),
+    linear-gradient(145deg, var(--color-hero-surface), var(--color-hero-bg)); */
+  border: var(--border-width) solid var(--color-hero-bg);
+  border-radius: calc(var(--radius-surface) * 2);
   box-shadow: var(--shadow-login);
 }
 
+.login-card::before,
+.login-card::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.login-card::before {
+  inset: var(--space-12);
+  border: var(--border-width) solid var(--color-hero-bg);
+  border-radius: calc(var(--radius-surface) * 2);
+  animation: border-breathe var(--duration-decoration) var(--ease-standard) infinite alternate;
+}
+
+.login-card::after {
+  inset: -35%;
+  background:
+    linear-gradient(90deg, transparent 0 42%, var(--color-auth-card-glow) 48% 52%, transparent 58% 100%),
+    linear-gradient(0deg, transparent 0 46%, var(--color-auth-line-soft) 49% 51%, transparent 54% 100%);
+  transform: translate(-18%) rotate(12deg);
+  animation: line-drift var(--duration-decoration) linear infinite;
+}
+
+.login-card__plane {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0 50%, var(--color-auth-plane) 50% 100%);
+  pointer-events: none;
+}
+
 .login-card__product {
+  position: absolute;
+  top: var(--space-32);
+  left: 50%;
+  z-index: 2;
   margin: 0;
-  color: var(--color-primary);
+  color: var(--color-accent-ink);
   font-size: var(--font-size-title);
   font-weight: 700;
   text-align: center;
+  transform: translateX(-50%);
 }
 
 .login-card__form {
-  width: 100%;
+  position: relative;
+  z-index: 1;
+  width: min(100%, var(--login-form-max-width));
+  padding: 7rem var(--space-24) var(--space-48);
+  justify-self: center;
+}
+
+@media (min-width: 1024px) {
+  .login-card__form {
+    width: 320px;
+  }
 }
 
 .login-card h1 {
-  margin: var(--space-8) 0 var(--space-24);
-  color: var(--color-ink);
+  margin: 0 0 var(--space-32);
+  /* color: var(--color-hero-ink); */
   font-size: var(--font-size-login-title);
   text-align: center;
 }
@@ -47,7 +103,7 @@ form {
 }
 
 label {
-  color: var(--color-ink);
+  /* color: var(--color-hero-ink); */
   font-weight: 600;
 }
 
@@ -56,30 +112,34 @@ input {
   min-height: var(--control-height);
   padding: 0 var(--space-12);
   color: var(--color-ink);
-  caret-color: var(--color-ink);
   background: var(--color-field-bg);
-  border: var(--border-width) solid var(--color-line);
-  border-radius: var(--radius-control);
+  border: var(--border-width) solid var(--color-auth-line);
+  border-radius: var(--radius-pill);
   font-weight: 500;
 }
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:autofill {
-  border-color: var(--color-line);
+input:-webkit-autofill:focus {
+  border-color: var(--color-auth-line);
   box-shadow: 0 0 0 1000px var(--color-field-bg) inset;
   -webkit-text-fill-color: var(--color-ink);
   caret-color: var(--color-ink);
 }
 
-.field-error {
+.field-error,
+.form-error {
+  min-height: 1.25rem;
   margin: 0;
+  color: var(--color-danger);
   font-size: var(--font-size-meta);
 }
 
-.login-card .button--primary {
-  width: 100%;
+.button--primary {
+  color: var(--color-hero-ink);
+  background: var(--color-brand-gradient);
+  border: var(--border-width) solid transparent;
+  box-shadow: 0 10px 28px var(--color-auth-backdrop-glow);
 }
 
 @media (max-width: 639px) {
@@ -89,6 +149,42 @@ input:autofill {
   }
 
   .login-card {
-    padding: var(--space-24) var(--space-16);
+    min-height: 0;
+  }
+
+  .login-card__product {
+    top: var(--space-24);
+  }
+
+  .login-card__form {
+    padding: 5.75rem var(--space-16) var(--space-32);
+  }
+}
+
+@keyframes line-drift {
+  from {
+    transform: translate(-18%) rotate(12deg);
+  }
+
+  to {
+    transform: translate(18%) rotate(12deg);
+  }
+}
+
+@keyframes border-breathe {
+  from {
+    opacity: 0.42;
+  }
+
+  to {
+    opacity: 0.84;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card::before,
+  .login-card::after {
+    animation: none;
+    transition-duration: 0ms;
   }
 }

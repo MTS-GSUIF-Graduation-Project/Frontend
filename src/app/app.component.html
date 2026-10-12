@@ -9,9 +9,10 @@
       <a *ngIf="auth.isLoggedIn()" class="top-bar__link" routerLink="/home" routerLinkActive="top-bar__link--active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
       <a *ngIf="auth.isLoggedIn()" class="top-bar__link" routerLink="/projects" routerLinkActive="top-bar__link--active">Projects</a>
       <a *ngIf="!auth.isLoggedIn()" class="top-bar__link" routerLink="/login" routerLinkActive="top-bar__link--active">Sign in</a>
+      <app-theme-toggle></app-theme-toggle>
       <span *ngIf="auth.isLoggedIn() && auth.getUsername()" class="top-bar__user">{{ auth.getUsername() }}</span>
       <button *ngIf="auth.isLoggedIn()" type="button" class="button button--logout" (click)="auth.logout()">
-        Sign out
+        Logout
       </button>
     </nav>
   </div>
