@@ -1,12 +1,12 @@
 import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
-import { HomeModule } from './home.module';
 import { LandingComponent } from './landing.component';
+import { LandingModule } from './landing.module';
 
 describe('LandingComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HomeModule],
+      imports: [LandingModule],
       providers: [provideRouter([])]
     }).compileComponents();
   });

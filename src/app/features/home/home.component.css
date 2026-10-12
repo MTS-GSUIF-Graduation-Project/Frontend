@@ -77,21 +77,22 @@
 }
 
 .home-help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: var(--space-24);
   padding: var(--space-24);
+  color: var(--color-ink);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-line);
   border-radius: var(--radius-control);
-}
-
-.home-help summary {
-  color: var(--color-ink);
   font-weight: 600;
-  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--duration-hover) var(--ease-standard);
 }
 
-.route-surface .home-help p {
-  margin-top: var(--space-12);
+.home-help:hover {
+  border-color: var(--color-primary);
 }
 
 @media (max-width: 639px) {

@@ -1,22 +1,31 @@
 import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
-import { LoginComponent } from './features/auth/login/login.component';
-import { HomeComponent } from './features/home/home.component';
-import { LandingComponent } from './features/home/landing.component';
 import { ProtectedPlaceholderComponent } from './app.component';
 
 const routes: Routes = [
-  { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
-  { path: 'home', component: HomeComponent, canActivate: [authGuard] },
+  {
+    path: 'login',
+    canActivate: [loginGuard],
+    loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule)
+  },
+  {
+    path: 'home',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/home/home.module').then(m => m.HomeModule)
+  },
   { path: 'projects', component: ProtectedPlaceholderComponent, canActivate: [authGuard] },
-  { path: '', pathMatch: 'full', component: LandingComponent },
+  {
+    path: '',
+    pathMatch: 'full',
+    loadChildren: () => import('./features/home/landing.module').then(m => m.LandingModule)
+  },
   { path: '**', redirectTo: '' }
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes, { anchorScrolling: 'enabled' })],
+  imports: [RouterModule.forRoot(routes, { anchorScrolling: 'enabled', preloadingStrategy: PreloadAllModules })],
   exports: [RouterModule]
 })
 export class AppRoutingModule { }

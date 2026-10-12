@@ -29,7 +29,8 @@ describe('HomeComponent', () => {
     expect(compiled.querySelector('#projects-title')?.textContent).toContain('Projects');
     expect(compiled.querySelector<HTMLAnchorElement>('.home-card__action')?.getAttribute('href')).toBe('/projects');
     expect(compiled.querySelector('.home-card__action')?.textContent).toContain('View projects');
-    expect(compiled.querySelector('.home-help summary')?.textContent).toContain('How GSUIF works');
+    expect(compiled.querySelector('.home-help')?.textContent).toContain('How GSUIF works');
+    expect(compiled.querySelector<HTMLAnchorElement>('.home-help')?.getAttribute('href')).toBe('/');
     expect(compiled.querySelector('.hero')).toBeNull();
     expect(compiled.querySelector('#workflow-title')).toBeNull();
   });
