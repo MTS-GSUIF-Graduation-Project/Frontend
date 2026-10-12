@@ -76,7 +76,7 @@
   --login-max-width: 47rem;
   --login-form-max-width: 320px;
 
-  --duration-route: 160ms;
+  --duration-route: 320ms;
   --duration-banner: 160ms;
   --duration-snapshot: 120ms;
   --duration-hover: 120ms;

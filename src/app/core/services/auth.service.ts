@@ -26,7 +26,7 @@ export class AuthService {
 
   logout(): void {
     this.clearSession();
-    void this.router.navigate(['/login']);
+    void this.router.navigate(['/']);
   }
 
   clearSession(): void {

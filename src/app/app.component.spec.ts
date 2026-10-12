@@ -82,6 +82,7 @@ describe('AppComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(router.url).toBe('/');
+    expect(compiled.querySelector('.route-progress')).not.toBeNull();
     expect(compiled.querySelector('app-landing')).not.toBeNull();
     expect(compiled.querySelector('#workflow-title')?.textContent).toContain('From metadata to editable code');
     expect(compiled.querySelector('.top-bar__link')?.textContent).toContain('Sign in');
