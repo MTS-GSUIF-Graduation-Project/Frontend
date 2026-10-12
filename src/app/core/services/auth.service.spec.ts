@@ -84,7 +84,7 @@ describe('AuthService', () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
-  it('clears storage on logout and returns to the landing page', () => {
+  it('clears storage on logout', () => {
     sessionStorage.setItem('gsuif.auth', JSON.stringify({
       token: 'jwt-value',
       tokenType: 'Bearer',
@@ -95,7 +95,7 @@ describe('AuthService', () => {
     service.logout();
 
     expect(sessionStorage.getItem('gsuif.auth')).toBeNull();
-    expect(router.navigate).toHaveBeenCalledWith(['/']);
+    expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
   it('reports login state and roles only from the approved session key', () => {
