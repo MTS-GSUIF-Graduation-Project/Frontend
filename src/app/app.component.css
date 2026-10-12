@@ -58,10 +58,19 @@
 
 .top-bar__nav {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: var(--space-12);
   min-height: 0;
+  margin-left: var(--space-24);
   padding: 0;
+}
+
+.top-bar__account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin-left: auto;
 }
 
 .top-bar__link {
@@ -115,6 +124,7 @@
 
   .top-bar__nav {
     width: 100%;
+    margin-left: 0;
     flex-wrap: wrap;
     border-radius: var(--radius-surface);
   }
