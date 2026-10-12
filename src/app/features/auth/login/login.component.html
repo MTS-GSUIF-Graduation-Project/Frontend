@@ -1,7 +1,6 @@
 <section class="login-route route-surface" aria-labelledby="login-title">
   <div class="login-card">
-    <div class="login-card__plane" aria-hidden="true"></div>
-    <p class="login-card__product">MetaFrame</p>
+    <p class="login-card__product">GSUIF</p>
 
     <div class="login-card__form">
       <h1 id="login-title">Sign in</h1>
@@ -18,7 +17,7 @@
             [attr.aria-invalid]="fieldMessage('username') ? 'true' : 'false'"
             [attr.aria-describedby]="fieldMessage('username') ? 'username-error' : null"
           >
-          <p *ngIf="fieldMessage('username')" id="username-error" class="field-error">
+          <p *ngIf="fieldMessage('username')" id="username-error" class="field-error status--error" role="alert">
             {{ fieldMessage('username') }}
           </p>
         </div>
@@ -34,7 +33,7 @@
             [attr.aria-invalid]="fieldMessage('password') ? 'true' : 'false'"
             [attr.aria-describedby]="fieldMessage('password') ? 'password-error' : null"
           >
-          <p *ngIf="fieldMessage('password')" id="password-error" class="field-error">
+          <p *ngIf="fieldMessage('password')" id="password-error" class="field-error status--error" role="alert">
             {{ fieldMessage('password') }}
           </p>
         </div>

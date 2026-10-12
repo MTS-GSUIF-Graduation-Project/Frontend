@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, catchError, map, tap, throwError } from 'rxjs';
+import { isUnexpiredJwt } from '../auth/session-token';
 import { ApiException, ApiResponse } from '../models/api-response.model';
 import { AuthSession, LoginRequest } from '../models/auth.model';
 import { ApiClientService } from './api-client.service';
@@ -37,8 +38,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    const token = this.readSession()?.token;
-    return token && token.trim().length > 0 ? token : null;
+    return this.readSession()?.token ?? null;
   }
 
   getUsername(): string {
@@ -79,13 +79,21 @@ export class AuthService {
 
     try {
       const parsed = JSON.parse(raw) as Partial<AuthSession>;
+      const token = typeof parsed.token === 'string' ? parsed.token.trim() : '';
+
+      if (!isUnexpiredJwt(token)) {
+        this.clearSession();
+        return null;
+      }
+
       return {
-        token: typeof parsed.token === 'string' ? parsed.token : '',
+        token,
         tokenType: typeof parsed.tokenType === 'string' ? parsed.tokenType : 'Bearer',
         username: typeof parsed.username === 'string' ? parsed.username : '',
         roles: Array.isArray(parsed.roles) ? parsed.roles.filter(role => typeof role === 'string') : []
       };
     } catch {
+      this.clearSession();
       return null;
     }
   }

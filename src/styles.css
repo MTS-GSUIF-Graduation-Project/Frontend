@@ -7,6 +7,7 @@
 html {
   min-width: 320px;
   color: var(--color-ink);
+  color-scheme: light;
   background: var(--color-bg);
   font-family: var(--font-ui);
   font-size: var(--font-size-body);
@@ -16,12 +17,16 @@ html {
     color var(--duration-theme) var(--ease-standard);
 }
 
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
 body {
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
-  background: var(--color-bg-gradient);
-  transition: background var(--duration-theme) var(--ease-standard);
+  background: var(--color-bg);
+  transition: background-color var(--duration-theme) var(--ease-standard);
 }
 
 app-root {
@@ -32,7 +37,7 @@ app-root {
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .route-surface {
@@ -42,6 +47,10 @@ a {
 .route-surface p {
   margin: 0;
   color: var(--color-muted);
+}
+
+.route-surface .status--error {
+  color: var(--color-danger);
 }
 
 @keyframes route-fade {
@@ -61,8 +70,13 @@ textarea {
   font: inherit;
 }
 
-:focus-visible {
-  outline: var(--focus-outline-width) solid var(--color-accent);
+:focus-visible,
+input:focus,
+button:focus,
+select:focus,
+textarea:focus,
+summary:focus {
+  outline: var(--focus-outline-width) solid var(--color-ink);
   outline-offset: var(--focus-outline-offset);
 }
 
@@ -78,4 +92,48 @@ textarea {
   color: var(--color-ink);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-line);
+}
+
+.button--primary {
+  color: #FFFFFF;
+  background: var(--color-primary);
+  border: var(--border-width) solid var(--color-primary);
+}
+
+.button--primary:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.status--error,
+.status--warning,
+.status--success {
+  margin: 0;
+  padding: var(--space-8) var(--space-12);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-control);
+}
+
+.status--error {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger);
+}
+
+.status--warning {
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning);
+}
+
+.status--success {
+  color: var(--color-ok);
+  background: var(--color-ok-bg);
+  border-color: var(--color-ok);
+}
+
+.projects-soon {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-32) var(--space-24);
 }
