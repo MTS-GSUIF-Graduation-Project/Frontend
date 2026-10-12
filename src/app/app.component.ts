@@ -17,9 +17,9 @@ export class AppComponent {
   selector: 'app-protected-placeholder',
   standalone: false,
   template: `
-    <section class="route-surface" aria-labelledby="page-title">
-      <app-page-header title="Projects"></app-page-header>
-      <p>The metadata browser is planned for SCRUM-71.</p>
+    <section class="route-surface projects-soon" aria-labelledby="page-title">
+      <app-page-header title="Projects" description="Coming soon."></app-page-header>
+      <p>Browsing projects, pages, and saved metadata versions is not available yet.</p>
     </section>
   `
 })

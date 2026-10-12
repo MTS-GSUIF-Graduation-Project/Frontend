@@ -104,7 +104,7 @@ describe('AuthService', () => {
     expect(service.hasRole('ROLE_USER')).toBe(false);
 
     sessionStorage.setItem('gsuif.auth', JSON.stringify({
-      token: 'jwt-value',
+      token: jwtWithExp(futureExp()),
       tokenType: 'Bearer',
       username: 'developer',
       roles: ['ROLE_USER']
@@ -114,4 +114,76 @@ describe('AuthService', () => {
     expect(service.getUserRoles()).toEqual(['ROLE_USER']);
     expect(service.hasRole('ROLE_USER')).toBe(true);
   });
+
+  it('rejects a missing token', () => {
+    expect(service.getToken()).toBeNull();
+    expect(service.isLoggedIn()).toBe(false);
+  });
+
+  it('clears a stored session that has no token', () => {
+    sessionStorage.setItem('gsuif.auth', JSON.stringify({
+      username: 'developer',
+      roles: ['ROLE_USER']
+    }));
+
+    expect(service.isLoggedIn()).toBe(false);
+    expect(sessionStorage.getItem('gsuif.auth')).toBeNull();
+  });
+
+  it('clears session data that is not JSON', () => {
+    sessionStorage.setItem('gsuif.auth', '{');
+
+    expect(service.isLoggedIn()).toBe(false);
+    expect(sessionStorage.getItem('gsuif.auth')).toBeNull();
+  });
+
+  it('clears a malformed token', () => {
+    sessionStorage.setItem('gsuif.auth', JSON.stringify({
+      token: 'not-a-jwt',
+      tokenType: 'Bearer',
+      username: 'developer',
+      roles: ['ROLE_USER']
+    }));
+
+    expect(service.getToken()).toBeNull();
+    expect(service.isLoggedIn()).toBe(false);
+    expect(sessionStorage.getItem('gsuif.auth')).toBeNull();
+  });
+
+  it('clears an expired token', () => {
+    sessionStorage.setItem('gsuif.auth', JSON.stringify({
+      token: jwtWithExp(Math.floor(Date.now() / 1000) - 60),
+      tokenType: 'Bearer',
+      username: 'developer',
+      roles: ['ROLE_USER']
+    }));
+
+    expect(service.isLoggedIn()).toBe(false);
+    expect(sessionStorage.getItem('gsuif.auth')).toBeNull();
+  });
+
+  it('keeps a valid unexpired token', () => {
+    const token = jwtWithExp(futureExp());
+    sessionStorage.setItem('gsuif.auth', JSON.stringify({
+      token,
+      tokenType: 'Bearer',
+      username: 'developer',
+      roles: ['ROLE_USER']
+    }));
+
+    expect(service.getToken()).toBe(token);
+    expect(service.isLoggedIn()).toBe(true);
+    expect(sessionStorage.getItem('gsuif.auth')).not.toBeNull();
+  });
 });
+
+function futureExp(): number {
+  return Math.floor(Date.now() / 1000) + 3600;
+}
+
+function jwtWithExp(exp: number): string {
+  const encode = (value: object): string =>
+    btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+
+  return `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ exp })}.sig`;
+}
