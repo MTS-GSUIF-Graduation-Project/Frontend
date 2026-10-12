@@ -2,7 +2,8 @@
 
 <header class="top-bar">
   <div class="top-bar__inner">
-    <a class="top-bar__brand" [routerLink]="auth.isLoggedIn() ? '/home' : '/login'" aria-label="GSUIF home">
+    <a class="top-bar__brand" [routerLink]="auth.isLoggedIn() ? '/home' : '/'" aria-label="GSUIF home">
+      <ng-container *ngTemplateOutlet="brandMark"></ng-container>
       <span>GSUIF</span>
     </a>
     <nav class="top-bar__nav" aria-label="Primary">
@@ -10,11 +11,19 @@
       <a *ngIf="auth.isLoggedIn()" class="top-bar__link" routerLink="/projects" routerLinkActive="top-bar__link--active">Projects</a>
       <div class="top-bar__account">
         <a *ngIf="!auth.isLoggedIn()" class="top-bar__link" routerLink="/login" routerLinkActive="top-bar__link--active">Sign in</a>
-        <app-theme-toggle></app-theme-toggle>
-        <span *ngIf="auth.isLoggedIn() && auth.getUsername()" class="top-bar__user">{{ auth.getUsername() }}</span>
-        <button *ngIf="auth.isLoggedIn()" type="button" class="button button--logout" (click)="auth.logout()">
-          Logout
-        </button>
+        <ng-container *ngIf="auth.isLoggedIn()">
+          <a class="top-bar__help" routerLink="/" aria-label="About GSUIF" title="About GSUIF">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M9.6 9.3a2.5 2.5 0 0 1 4.85.85c0 1.65-2.45 2.2-2.45 3.6"></path>
+              <path d="M12 17h.01"></path>
+            </svg>
+          </a>
+          <span *ngIf="auth.getUsername()" class="top-bar__avatar" aria-hidden="true">{{ initials }}</span>
+          <span *ngIf="auth.getUsername()" class="top-bar__user">{{ auth.getUsername() }}</span>
+          <span class="top-bar__divider" aria-hidden="true"></span>
+          <button type="button" class="button button--logout" (click)="auth.logout()">Sign out</button>
+        </ng-container>
       </div>
     </nav>
   </div>
@@ -29,3 +38,17 @@
 <main id="main-content" class="page-shell" tabindex="-1">
   <router-outlet></router-outlet>
 </main>
+
+<footer class="site-footer">
+  <span class="site-footer__brand">
+    <ng-container *ngTemplateOutlet="brandMark"></ng-container>
+    <span>GSUIF</span>
+  </span>
+  <span class="site-footer__tagline">Metadata-driven UI framework</span>
+</footer>
+
+<ng-template #brandMark>
+  <svg class="brand-mark" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+    <path d="M9 4H4v16h5M15 4h5v16h-5"></path>
+  </svg>
+</ng-template>

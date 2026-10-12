@@ -1,10 +1,27 @@
-<section class="home route-surface" aria-labelledby="page-title">
-  <div class="home__page-title">
-    <app-page-header title="Home"></app-page-header>
-  </div>
+<section class="home route-surface" aria-labelledby="home-welcome">
+  <nav class="home__breadcrumb" aria-label="Breadcrumb">
+    <span aria-current="page">Home</span>
+  </nav>
 
-  <app-home-hero [welcomeMessage]="welcomeMessage"></app-home-hero>
-  <app-what-gsuif-does></app-what-gsuif-does>
-  <app-platform-workflow id="platform-workflow"></app-platform-workflow>
-  <app-final-cta></app-final-cta>
+  <h1 id="home-welcome" class="home__welcome">{{ welcomeMessage }}</h1>
+  <p class="home__support">Open a project to view its pages and metadata versions.</p>
+
+  <section class="home-card" aria-labelledby="projects-title">
+    <svg class="home-card__icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.38l2 2.25h8.62A1.5 1.5 0 0 1 21 8.75v9.75A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"></path>
+    </svg>
+    <div class="home-card__body">
+      <h2 id="projects-title">Projects</h2>
+      <p>Browse projects, pages, and saved metadata versions.</p>
+    </div>
+    <a class="home-card__action" routerLink="/projects">
+      View projects
+      <span aria-hidden="true">&rarr;</span>
+    </a>
+  </section>
+
+  <details class="home-help">
+    <summary>How GSUIF works</summary>
+    <p>GSUIF keeps a project's pages and saved metadata versions together. Open a project when you want to review that saved structure.</p>
+  </details>
 </section>

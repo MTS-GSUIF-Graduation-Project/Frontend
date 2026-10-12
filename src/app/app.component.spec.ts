@@ -41,7 +41,8 @@ describe('AppComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.top-bar__user')).toBeNull();
     expect(compiled.querySelector('button.button--logout')).toBeNull();
-    expect(compiled.querySelector('app-theme-toggle')).not.toBeNull();
+    expect(compiled.querySelector('.top-bar__avatar')).toBeNull();
+    expect(compiled.querySelector('.site-footer')?.textContent).toContain('Metadata-driven UI framework');
     expect(compiled.querySelector('.top-bar__link')?.textContent).toContain('Sign in');
   });
 
@@ -61,7 +62,8 @@ describe('AppComponent', () => {
     const logoutButton = compiled.querySelector<HTMLButtonElement>('button.button--logout');
 
     expect(compiled.querySelector('.top-bar__user')?.textContent).toContain('Ada Lovelace');
-    expect(logoutButton?.textContent).toContain('Logout');
+    expect(logoutButton?.textContent).toContain('Sign out');
+    expect(compiled.querySelector('.top-bar__avatar')?.textContent).toContain('AD');
     expect(Array.from(compiled.querySelectorAll('.top-bar__link')).map(link => link.textContent?.trim())).toEqual(['Home', 'Projects']);
 
     logoutButton?.click();
@@ -70,7 +72,43 @@ describe('AppComponent', () => {
     expect(logout).toHaveBeenCalledWith();
   });
 
-  it('renders the landing home for a valid unexpired session', async () => {
+  it('renders the public landing page at the root without a session', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(router.url).toBe('/');
+    expect(compiled.querySelector('app-landing')).not.toBeNull();
+    expect(compiled.querySelector('#workflow-title')?.textContent).toContain('From metadata to editable code');
+    expect(compiled.querySelector('.top-bar__link')?.textContent).toContain('Sign in');
+  });
+
+  it('keeps the login form on its own route and sends unknown paths to the landing page', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+
+    await router.navigateByUrl('/login');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-login form')).not.toBeNull();
+    expect(compiled.querySelector('app-landing')).toBeNull();
+
+    await router.navigateByUrl('/does-not-exist');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(router.url).toBe('/');
+    expect(compiled.querySelector('app-landing')).not.toBeNull();
+    expect(compiled.querySelector('app-login')).toBeNull();
+  });
+
+  it('renders the compact home for a valid unexpired session', async () => {
     sessionStorage.setItem('gsuif.auth', JSON.stringify({
       token: jwtWithExp(futureExp()),
       tokenType: 'Bearer',
@@ -87,10 +125,10 @@ describe('AppComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(router.url).toBe('/home');
     expect(compiled.querySelector('app-home')).not.toBeNull();
-    expect(compiled.querySelector('.hero__welcome')?.textContent).toContain('Welcome, Ada Lovelace.');
-    expect(compiled.querySelector('#capabilities-title')?.textContent).toContain('What GSUIF does');
-    expect(compiled.querySelector('#workflow-title')?.textContent).toContain('From metadata to editable code');
-    expect(compiled.querySelector('#final-cta-title')?.textContent).toContain('Explore your metadata structure.');
+    expect(compiled.querySelector('#home-welcome')?.textContent).toContain('Welcome, Ada.');
+    expect(compiled.querySelector('.home-card__action')?.textContent).toContain('View projects');
+    expect(compiled.querySelector('app-landing')).toBeNull();
+    expect(compiled.querySelector('#workflow-title')).toBeNull();
   });
 
   it('redirects /home to login when the session is missing', async () => {

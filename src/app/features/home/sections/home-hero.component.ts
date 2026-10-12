@@ -7,5 +7,5 @@ import { Component, Input } from '@angular/core';
   styleUrl: './home-hero.component.css'
 })
 export class HomeHeroComponent {
-  @Input({ required: true }) welcomeMessage = 'Welcome.';
+  @Input() welcomeMessage = '';
 }

@@ -29,7 +29,7 @@
   <div class="hero__content">
     <p class="hero__eyebrow">Metadata-driven development</p>
     <h2 id="hero-title">Metadata becomes <span>structure.</span></h2>
-    <p class="hero__welcome">{{ welcomeMessage }}</p>
+    <p *ngIf="welcomeMessage" class="hero__welcome">{{ welcomeMessage }}</p>
     <p class="hero__copy">
       GSUIF connects versioned metadata and company standards with template-based generation and build validation to produce frontend source that developers can edit. This frontend currently provides authentication and protected navigation.
     </p>

@@ -11,6 +11,10 @@ import { NotificationService } from './core/services/notification.service';
 export class AppComponent {
   protected readonly auth = inject(AuthService);
   protected readonly notifications = inject(NotificationService);
+
+  protected get initials(): string {
+    return this.auth.getUsername().trim().slice(0, 2).toUpperCase();
+  }
 }
 
 @Component({

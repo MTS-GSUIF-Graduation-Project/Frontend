@@ -4,14 +4,15 @@ import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
 import { LoginComponent } from './features/auth/login/login.component';
 import { HomeComponent } from './features/home/home.component';
+import { LandingComponent } from './features/home/landing.component';
 import { ProtectedPlaceholderComponent } from './app.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
   { path: 'home', component: HomeComponent, canActivate: [authGuard] },
   { path: 'projects', component: ProtectedPlaceholderComponent, canActivate: [authGuard] },
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
-  { path: '**', redirectTo: 'login' }
+  { path: '', pathMatch: 'full', component: LandingComponent },
+  { path: '**', redirectTo: '' }
 ];
 
 @NgModule({

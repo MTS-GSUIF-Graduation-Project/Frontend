@@ -11,7 +11,7 @@ export class HomeComponent {
   private readonly auth = inject(AuthService);
 
   get welcomeMessage(): string {
-    const username = this.auth.getUsername().trim();
-    return username ? `Welcome, ${username}.` : 'Welcome.';
+    const firstName = this.auth.getUsername().trim().split(/\s+/)[0];
+    return firstName ? `Welcome, ${firstName}.` : 'Welcome.';
   }
 }
