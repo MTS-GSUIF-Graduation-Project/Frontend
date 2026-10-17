@@ -131,9 +131,3 @@ summary:focus {
   background: var(--color-ok-bg);
   border-color: var(--color-ok);
 }
-
-.projects-soon {
-  max-width: var(--content-max-width);
-  margin: 0 auto;
-  padding: var(--space-32) var(--space-24);
-}

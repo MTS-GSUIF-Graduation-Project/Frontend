@@ -2,7 +2,6 @@ import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
-import { ProtectedPlaceholderComponent } from './app.component';
 
 const routes: Routes = [
   {
@@ -15,7 +14,11 @@ const routes: Routes = [
     canActivate: [authGuard],
     loadChildren: () => import('./features/home/home.module').then(m => m.HomeModule)
   },
-  { path: 'projects', component: ProtectedPlaceholderComponent, canActivate: [authGuard] },
+  {
+    path: 'projects',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/projects/projects.module').then(m => m.ProjectsModule)
+  },
   {
     path: '',
     pathMatch: 'full',

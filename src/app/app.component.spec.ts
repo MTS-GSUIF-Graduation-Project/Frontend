@@ -269,7 +269,7 @@ describe('AppComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('app-home')).toBeNull();
   });
 
-  it('shows that projects are coming soon', async () => {
+  it('renders the protected projects browser', async () => {
     sessionStorage.setItem('gsuif.auth', JSON.stringify({
       token: jwtWithExp(futureExp()),
       tokenType: 'Bearer',
@@ -283,10 +283,34 @@ describe('AppComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
+    TestBed.inject(HttpTestingController).expectOne('/api/v1/projects').flush({
+      status: 'OK',
+      clientMessage: 'Projects retrieved',
+      statusCode: 200,
+      body: {
+        data: [{
+          id: 'project-71',
+          name: 'Graduation UI',
+          description: 'Metadata workspace',
+          createdAt: '2026-10-01T08:00:00Z',
+          updatedAt: '2026-10-02T09:00:00Z',
+          createdBy: 'ada',
+          lastModifiedBy: 'grace'
+        }],
+        totalPages: 1,
+        totalElements: 1,
+        size: 20,
+        number: 0
+      },
+      errors: null
+    });
+    fixture.detectChanges();
+
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Coming soon.');
-    expect(compiled.textContent).toContain('not available yet');
-    expect(compiled.textContent).not.toContain('Recent projects');
+    expect(router.url).toBe('/projects');
+    expect(compiled.querySelector('app-project-list')).not.toBeNull();
+    expect(compiled.textContent).toContain('Graduation UI');
+    expect(compiled.textContent).toContain('Metadata workspace');
   });
 
   it('renders the theme toggle when signed out and switches to the dark theme', () => {
