@@ -26,11 +26,18 @@ describe('HomeComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.home__breadcrumb')?.textContent).toContain('Home');
     expect(compiled.querySelector('#home-welcome')?.textContent).toContain('Welcome, Ada.');
+    expect(compiled.querySelector('.home__support')?.textContent?.trim()).toBe(
+      'Open a project to view its pages and metadata versions.'
+    );
     expect(compiled.querySelector('#projects-title')?.textContent).toContain('Projects');
+    expect(compiled.querySelector('.home-card__body p')?.textContent?.trim()).toBe(
+      'Browse your projects, pages, and saved metadata versions.'
+    );
     expect(compiled.querySelector<HTMLAnchorElement>('.home-card__action')?.getAttribute('href')).toBe('/projects');
     expect(compiled.querySelector('.home-card__action')?.textContent).toContain('View projects');
-    expect(compiled.querySelector('.home-help')?.textContent).toContain('How GSUIF works');
-    expect(compiled.querySelector<HTMLAnchorElement>('.home-help')?.getAttribute('href')).toBe('/');
+    expect(compiled.querySelector('.home-help')?.textContent).toContain('New to GSUIF?');
+    expect(compiled.querySelector('.home-help a')?.textContent).toContain('How GSUIF works');
+    expect(compiled.querySelector<HTMLAnchorElement>('.home-help a')?.getAttribute('href')).toBe('/');
     expect(compiled.querySelector('.hero')).toBeNull();
     expect(compiled.querySelector('#workflow-title')).toBeNull();
   });

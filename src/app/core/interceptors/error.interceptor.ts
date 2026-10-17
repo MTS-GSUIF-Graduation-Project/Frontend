@@ -2,22 +2,32 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { ApiEndpoints } from '../http/api-endpoints';
+import { toApiException } from '../http/api-error';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
+
+const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please sign in again.';
+const REQUEST_FAILED_MESSAGE = 'The request could not be completed.';
 
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const notifications = inject(NotificationService);
   const router = inject(Router);
+  const isProtected = inject(ApiEndpoints).isProtected(request.url);
 
   return next(request).pipe(
     catchError(error => {
-      if (error instanceof HttpErrorResponse && !isLoginRequest(request.method, request.url)) {
-        notifications.show(error.error?.clientMessage || fallbackMessage(error.status));
-
+      if (isProtected && error instanceof HttpErrorResponse) {
         if (error.status === 401) {
           auth.clearSession();
-          void router.navigate(['/login']);
+          notifications.show(SESSION_EXPIRED_MESSAGE);
+
+          if (router.url.split(/[?#]/)[0] !== '/login') {
+            void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+          }
+        } else {
+          notifications.show(toApiException(error, REQUEST_FAILED_MESSAGE).clientMessage);
         }
       }
 
@@ -25,11 +35,3 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
     })
   );
 };
-
-function isLoginRequest(method: string, url: string): boolean {
-  return method.toUpperCase() === 'POST' && url.endsWith('/api/auth/login');
-}
-
-function fallbackMessage(status: number): string {
-  return status === 0 ? 'Unable to reach the server.' : 'An unexpected error occurred.';
-}

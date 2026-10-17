@@ -1,6 +1,6 @@
 <div *ngIf="navigating()" class="route-progress" role="progressbar" aria-label="Loading page"></div>
 
-<a class="skip-link" [routerLink]="[]" fragment="main-content">Skip to content</a>
+<a class="skip-link" [routerLink]="[]" fragment="main-content" queryParamsHandling="preserve">Skip to content</a>
 
 <header class="top-bar">
   <div class="top-bar__inner">
@@ -9,10 +9,11 @@
       <span>GSUIF</span>
     </a>
     <nav class="top-bar__nav" aria-label="Primary">
-      <a *ngIf="auth.isLoggedIn()" class="top-bar__link" routerLink="/home" routerLinkActive="top-bar__link--active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
-      <a *ngIf="auth.isLoggedIn()" class="top-bar__link" routerLink="/projects" routerLinkActive="top-bar__link--active">Projects</a>
+      <a *ngIf="auth.isLoggedIn()" class="top-bar__link" routerLink="/home" routerLinkActive="top-bar__link--active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Home</a>
+      <a *ngIf="auth.isLoggedIn()" class="top-bar__link" routerLink="/projects" routerLinkActive="top-bar__link--active" ariaCurrentWhenActive="page">Projects</a>
       <div class="top-bar__account">
-        <a *ngIf="!auth.isLoggedIn()" class="top-bar__link" routerLink="/login" routerLinkActive="top-bar__link--active">Sign in</a>
+        <app-theme-toggle></app-theme-toggle>
+        <a *ngIf="!auth.isLoggedIn()" class="top-bar__link" routerLink="/login" routerLinkActive="top-bar__link--active" ariaCurrentWhenActive="page">Sign in</a>
         <ng-container *ngIf="auth.isLoggedIn()">
           <a class="top-bar__help" routerLink="/" aria-label="About GSUIF" title="About GSUIF">
             <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
@@ -37,7 +38,7 @@
   (dismissed)="notifications.clear()"
 ></app-notification-banner>
 
-<main id="main-content" class="page-shell" tabindex="-1">
+<main #mainContent id="main-content" class="page-shell" tabindex="-1">
   <router-outlet></router-outlet>
 </main>
 

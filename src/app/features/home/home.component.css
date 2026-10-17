@@ -62,7 +62,7 @@
   gap: var(--space-8);
   min-height: 44px;
   padding: 0 var(--space-24);
-  color: #FFFFFF;
+  color: var(--color-surface);
   background: var(--color-primary);
   border-radius: var(--radius-control);
   font-size: 1rem;
@@ -73,26 +73,25 @@
 }
 
 .home-card__action:hover {
-  background: var(--color-nav-pill-bg);
+  background: var(--color-accent);
 }
 
 .home-help {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-8);
   margin-top: var(--space-24);
-  padding: var(--space-24);
-  color: var(--color-ink);
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-line);
-  border-radius: var(--radius-control);
-  font-weight: 600;
-  text-decoration: none;
-  transition: border-color var(--duration-hover) var(--ease-standard);
+  color: var(--color-muted);
 }
 
-.home-help:hover {
-  border-color: var(--color-primary);
+.home-help a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-underline-offset: 0.2em;
+}
+
+.home-help a:hover {
+  color: var(--color-accent);
 }
 
 @media (max-width: 639px) {

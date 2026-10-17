@@ -27,6 +27,21 @@ describe('isUnexpiredJwt', () => {
     expect(isUnexpiredJwt(token({ exp, sub: 'developer' }), now)).toBe(true);
     expect(isUnexpiredJwt(token({ exp: Math.floor(now / 1000) }), now - 1)).toBe(true);
   });
+
+  it('does not reject a structurally valid JWT because the signature is unverified', () => {
+    const exp = Math.floor(now / 1000) + 60;
+    const [header, payload] = token({ exp, sub: 'developer' }).split('.');
+
+    expect(isUnexpiredJwt(`${header}.${payload}.dGFtcGVyZWQ`, now)).toBe(true);
+    expect(isUnexpiredJwt(`${header}.${payload}.sig`, now)).toBe(true);
+  });
+
+  it('reads exp from a UTF-8 payload with a non-ASCII subject', () => {
+    const bytes = new TextEncoder().encode(JSON.stringify({ sub: 'مستخدم_é', exp: Math.floor(now / 1000) + 60 }));
+    const payload = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+
+    expect(isUnexpiredJwt(`${encode({ alg: 'HS384' })}.${payload}.sig`, now)).toBe(true);
+  });
 });
 
 function token(payload: object): string {

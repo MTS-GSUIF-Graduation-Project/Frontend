@@ -182,6 +182,10 @@
   overflow-y: auto;
 }
 
+.page-shell:focus {
+  outline: none;
+}
+
 .site-footer {
   display: flex;
   align-items: center;
@@ -219,8 +223,12 @@
   }
 
   .top-bar__nav {
-    gap: var(--space-16);
+    gap: var(--space-12);
     margin-left: var(--space-8);
+  }
+
+  .top-bar__account {
+    gap: var(--space-8);
   }
 
   .top-bar__user,

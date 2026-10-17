@@ -2,11 +2,16 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, catchError, map, tap, throwError } from 'rxjs';
 import { isUnexpiredJwt } from '../auth/session-token';
+import { LOGIN_PATH } from '../http/api-endpoints';
+import { toApiException } from '../http/api-error';
 import { ApiException, ApiResponse } from '../models/api-response.model';
 import { AuthSession, LoginRequest } from '../models/auth.model';
 import { ApiClientService } from './api-client.service';
 
 const STORAGE_KEY = 'gsuif.auth';
+const DEFAULT_ROUTE = '/home';
+export const LOGIN_FAILED_MESSAGE = 'Sign-in failed.';
+const INVALID_SESSION_MESSAGE = 'Sign-in failed because the server returned an invalid session. Please try again.';
 
 @Injectable({
   providedIn: 'root'
@@ -15,12 +20,12 @@ export class AuthService {
   private readonly apiClient = inject(ApiClientService);
   private readonly router = inject(Router);
 
-  login(credentials: LoginRequest): Observable<AuthSession> {
-    return this.apiClient.post<AuthSession>('/api/auth/login', credentials).pipe(
-      map(response => this.unwrapLogin(response)),
+  login(credentials: LoginRequest, returnUrl: string | null = null): Observable<AuthSession> {
+    return this.apiClient.post<AuthSession>(LOGIN_PATH, credentials).pipe(
+      catchError(error => throwError(() => toApiException(error, LOGIN_FAILED_MESSAGE))),
+      map(response => this.toSession(response)),
       tap(session => this.writeSession(session)),
-      tap(() => void this.router.navigate(['/home'])),
-      catchError(error => throwError(() => this.toApiException(error)))
+      tap(() => void this.router.navigateByUrl(safeReturnUrl(returnUrl)))
     );
   }
 
@@ -53,21 +58,22 @@ export class AuthService {
     return this.getUserRoles().includes(role);
   }
 
-  private unwrapLogin(response: ApiResponse<AuthSession>): AuthSession {
-    if (response.status === 'OK' && response.errors === null && response.body) {
-      return response.body;
+  private toSession(response: ApiResponse<AuthSession> | null): AuthSession {
+    if (response?.status !== 'OK') {
+      throw new ApiException(response?.statusCode ?? 0, response?.clientMessage || LOGIN_FAILED_MESSAGE, response?.errors ?? null);
     }
 
-    throw new ApiException(response.statusCode, response.clientMessage || 'Sign-in failed.', response.errors);
+    const session = response.errors === null ? parseSession(response.body) : null;
+
+    if (!session) {
+      throw new ApiException(response.statusCode, INVALID_SESSION_MESSAGE, null);
+    }
+
+    return session;
   }
 
   private writeSession(session: AuthSession): void {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-      token: session.token,
-      tokenType: session.tokenType || 'Bearer',
-      username: session.username,
-      roles: Array.isArray(session.roles) ? session.roles : []
-    }));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   }
 
   private readSession(): AuthSession | null {
@@ -77,41 +83,45 @@ export class AuthService {
       return null;
     }
 
+    let session: AuthSession | null = null;
+
     try {
-      const parsed = JSON.parse(raw) as Partial<AuthSession>;
-      const token = typeof parsed.token === 'string' ? parsed.token.trim() : '';
-
-      if (!isUnexpiredJwt(token)) {
-        this.clearSession();
-        return null;
-      }
-
-      return {
-        token,
-        tokenType: typeof parsed.tokenType === 'string' ? parsed.tokenType : 'Bearer',
-        username: typeof parsed.username === 'string' ? parsed.username : '',
-        roles: Array.isArray(parsed.roles) ? parsed.roles.filter(role => typeof role === 'string') : []
-      };
+      session = parseSession(JSON.parse(raw));
     } catch {
+      session = null;
+    }
+
+    if (!session) {
       this.clearSession();
-      return null;
     }
+
+    return session;
+  }
+}
+
+function parseSession(value: unknown): AuthSession | null {
+  if (typeof value !== 'object' || value === null) {
+    return null;
   }
 
-  private toApiException(error: unknown): ApiException {
-    if (error instanceof ApiException) {
-      return error;
-    }
+  const { token, tokenType, username, roles } = value as Partial<Record<keyof AuthSession, unknown>>;
 
-    if (typeof error === 'object' && error !== null && 'error' in error) {
-      const body = (error as { error?: Partial<ApiResponse<unknown>> }).error;
-      return new ApiException(
-        typeof body?.statusCode === 'number' ? body.statusCode : 0,
-        body?.clientMessage || 'Unable to reach the server.',
-        body?.errors ?? null
-      );
-    }
-
-    return new ApiException(0, 'Unable to reach the server.', null);
+  if (
+    typeof token !== 'string' || token !== token.trim() || !isUnexpiredJwt(token) ||
+    tokenType !== 'Bearer' ||
+    typeof username !== 'string' ||
+    !Array.isArray(roles) || !roles.every(role => typeof role === 'string')
+  ) {
+    return null;
   }
+
+  return { token, tokenType, username, roles };
+}
+
+function safeReturnUrl(url: string | null): string {
+  if (!url || !url.startsWith('/') || url.startsWith('//') || url.startsWith('/\\') || url.split(/[?#]/)[0] === '/login') {
+    return DEFAULT_ROUTE;
+  }
+
+  return url;
 }

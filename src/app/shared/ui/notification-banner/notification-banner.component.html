@@ -1,6 +1,6 @@
 <section class="notification status--error" role="alert">
   <p>{{ message }}</p>
   <button type="button" class="notification__dismiss" aria-label="Dismiss notification" (click)="dismissed.emit()">
-    x
+    <span aria-hidden="true">&times;</span>
   </button>
 </section>

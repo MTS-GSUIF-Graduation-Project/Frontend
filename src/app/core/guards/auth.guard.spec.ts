@@ -1,25 +1,29 @@
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree } from '@angular/router';
+import { Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { authGuard } from './auth.guard';
 import { AuthService } from '../services/auth.service';
 
 describe('authGuard', () => {
+  const state = { url: '/projects?tab=pages' } as RouterStateSnapshot;
+
+  afterEach(() => sessionStorage.clear());
+
   it('allows navigation when authenticated', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { isLoggedIn: () => true } },
-        { provide: Router, useValue: { parseUrl: vi.fn() } }
+        { provide: Router, useValue: { createUrlTree: vi.fn() } }
       ]
     });
 
-    expect(TestBed.runInInjectionContext(() => authGuard({} as never, {} as never))).toBe(true);
+    expect(TestBed.runInInjectionContext(() => authGuard({} as never, state))).toBe(true);
   });
 
-  it('redirects to login when unauthenticated', () => {
+  it('redirects to login with the requested URL when unauthenticated', () => {
     const tree = {} as UrlTree;
-    const router = { parseUrl: vi.fn(() => tree) };
+    const router = { createUrlTree: vi.fn(() => tree) };
 
     TestBed.configureTestingModule({
       providers: [
@@ -28,13 +32,13 @@ describe('authGuard', () => {
       ]
     });
 
-    expect(TestBed.runInInjectionContext(() => authGuard({} as never, {} as never))).toBe(tree);
-    expect(router.parseUrl).toHaveBeenCalledWith('/login');
+    expect(TestBed.runInInjectionContext(() => authGuard({} as never, state))).toBe(tree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/login'], { queryParams: { returnUrl: '/projects?tab=pages' } });
   });
 
   it('redirects to login and clears an expired session', () => {
     const tree = {} as UrlTree;
-    const router = { parseUrl: vi.fn(() => tree) };
+    const router = { createUrlTree: vi.fn(() => tree) };
     sessionStorage.setItem('gsuif.auth', JSON.stringify({
       token: jwtWithExp(Math.floor(Date.now() / 1000) - 60),
       tokenType: 'Bearer',
@@ -51,8 +55,8 @@ describe('authGuard', () => {
       ]
     });
 
-    expect(TestBed.runInInjectionContext(() => authGuard({} as never, {} as never))).toBe(tree);
-    expect(router.parseUrl).toHaveBeenCalledWith('/login');
+    expect(TestBed.runInInjectionContext(() => authGuard({} as never, state))).toBe(tree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/login'], { queryParams: { returnUrl: '/projects?tab=pages' } });
     expect(sessionStorage.getItem('gsuif.auth')).toBeNull();
   });
 
@@ -69,13 +73,12 @@ describe('authGuard', () => {
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting(),
         AuthService,
-        { provide: Router, useValue: { parseUrl: vi.fn() } }
+        { provide: Router, useValue: { createUrlTree: vi.fn() } }
       ]
     });
 
-    expect(TestBed.runInInjectionContext(() => authGuard({} as never, {} as never))).toBe(true);
+    expect(TestBed.runInInjectionContext(() => authGuard({} as never, state))).toBe(true);
     expect(sessionStorage.getItem('gsuif.auth')).not.toBeNull();
-    sessionStorage.clear();
   });
 });
 

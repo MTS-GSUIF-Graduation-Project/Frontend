@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
@@ -17,8 +17,11 @@ export class AppComponent {
   protected readonly notifications = inject(NotificationService);
   protected readonly navigating = signal(false);
 
+  @ViewChild('mainContent') private mainContent?: ElementRef<HTMLElement>;
+
   private progressStartedAt = 0;
   private progressTimer: ReturnType<typeof setTimeout> | undefined;
+  private previousPath: string | undefined;
 
   constructor() {
     inject(Router).events.pipe(takeUntilDestroyed()).subscribe(event => {
@@ -29,6 +32,14 @@ export class AppComponent {
       } else if (event instanceof NavigationEnd || event instanceof NavigationCancel || event instanceof NavigationError) {
         const remaining = Math.max(0, MIN_PROGRESS_MS - (Date.now() - this.progressStartedAt));
         this.progressTimer = setTimeout(() => this.navigating.set(false), remaining);
+      }
+
+      if (event instanceof NavigationEnd) {
+        const path = event.urlAfterRedirects.split(/[?#]/)[0];
+        if (this.previousPath !== undefined && path !== this.previousPath) {
+          this.mainContent?.nativeElement.focus({ preventScroll: true });
+        }
+        this.previousPath = path;
       }
     });
   }
