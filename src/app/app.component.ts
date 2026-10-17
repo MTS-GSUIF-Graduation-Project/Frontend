@@ -48,16 +48,3 @@ export class AppComponent {
     return this.auth.getUsername().trim().slice(0, 2).toUpperCase();
   }
 }
-
-@Component({
-  selector: 'app-protected-placeholder',
-  standalone: false,
-  template: `
-    <section class="route-surface projects-soon" aria-labelledby="page-title">
-      <app-page-header title="Projects" description="Coming soon."></app-page-header>
-      <p>Browsing projects, pages, and saved metadata versions is not available yet.</p>
-    </section>
-  `
-})
-export class ProtectedPlaceholderComponent {
-}

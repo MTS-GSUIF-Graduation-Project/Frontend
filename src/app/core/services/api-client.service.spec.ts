@@ -21,6 +21,21 @@ describe('ApiClientService', () => {
 
   afterEach(() => http.verify());
 
+  it('returns the GET ApiResponse envelope without unwrapping it', () => {
+    service.get<{ name: string }>('/api/v1/projects/1').subscribe(response => {
+      expect(response.status).toBe('OK');
+      expect(response.body).toEqual({ name: 'Metadata browser' });
+    });
+
+    http.expectOne('/api/v1/projects/1').flush({
+      status: 'OK',
+      clientMessage: 'Project retrieved',
+      statusCode: 200,
+      body: { name: 'Metadata browser' },
+      errors: null
+    });
+  });
+
   it('returns the ApiResponse envelope without unwrapping it', () => {
     service.post<{ token: string }>('/api/auth/login', { username: 'developer', password: 'secret' }).subscribe(response => {
       expect(response.body).toEqual({ token: 'stored-token' });

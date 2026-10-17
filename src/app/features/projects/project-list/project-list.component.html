@@ -1,0 +1,28 @@
+<section class="browser route-surface" aria-labelledby="page-title">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/home">Home</a><span aria-hidden="true">/</span><span aria-current="page">Projects</span>
+  </nav>
+
+  <app-page-header title="Projects" description="Browse project metadata and open a project to inspect its pages."></app-page-header>
+
+  <app-loading-state *ngIf="loading" label="Loading projects."></app-loading-state>
+  <app-error-state *ngIf="!loading && errorMessage" [message]="errorMessage" retryLabel="Try again" (retry)="load()"></app-error-state>
+  <app-empty-state *ngIf="!loading && !errorMessage && projects.length === 0" message="No projects found."></app-empty-state>
+
+  <ng-container *ngIf="!loading && !errorMessage && projects.length > 0">
+    <p class="result-count">{{ totalElements }} project{{ totalElements === 1 ? '' : 's' }}</p>
+    <div class="card-grid">
+      <article *ngFor="let project of projects" class="metadata-card">
+        <h2><a [routerLink]="[project.id]">{{ project.name }}</a></h2>
+        <p class="description">{{ project.description || 'No description provided.' }}</p>
+        <dl class="metadata-grid">
+          <div><dt>Project ID</dt><dd>{{ project.id }}</dd></div>
+          <div><dt>Created</dt><dd>{{ project.createdAt | date:'medium' }}</dd></div>
+          <div><dt>Created by</dt><dd>{{ project.createdBy }}</dd></div>
+          <div><dt>Updated</dt><dd>{{ project.updatedAt | date:'medium' }}</dd></div>
+          <div><dt>Last modified by</dt><dd>{{ project.lastModifiedBy }}</dd></div>
+        </dl>
+      </article>
+    </div>
+  </ng-container>
+</section>

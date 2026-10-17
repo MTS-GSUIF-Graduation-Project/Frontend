@@ -1,0 +1,40 @@
+<section class="browser route-surface" aria-labelledby="page-title">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/home">Home</a><span aria-hidden="true">/</span><a routerLink="/projects">Projects</a><span aria-hidden="true">/</span><span aria-current="page">{{ project?.name || 'Project' }}</span>
+  </nav>
+
+  <app-page-header [title]="project?.name || 'Project'" description="Project details and pages."></app-page-header>
+
+  <app-loading-state *ngIf="loading" label="Loading project and pages."></app-loading-state>
+  <app-error-state *ngIf="!loading && errorMessage" [message]="errorMessage" retryLabel="Try again" (retry)="load()"></app-error-state>
+
+  <ng-container *ngIf="!loading && !errorMessage && project as item">
+    <article class="detail-panel">
+      <p class="description">{{ item.description || 'No description provided.' }}</p>
+      <dl class="metadata-grid">
+        <div><dt>Project ID</dt><dd>{{ item.id }}</dd></div>
+        <div><dt>Created</dt><dd>{{ item.createdAt | date:'medium' }}</dd></div>
+        <div><dt>Created by</dt><dd>{{ item.createdBy }}</dd></div>
+        <div><dt>Updated</dt><dd>{{ item.updatedAt | date:'medium' }}</dd></div>
+        <div><dt>Last modified by</dt><dd>{{ item.lastModifiedBy }}</dd></div>
+      </dl>
+    </article>
+
+    <div class="section-heading"><h2>Pages</h2><span>{{ totalPages }}</span></div>
+    <app-empty-state *ngIf="pages.length === 0" message="No pages found in this project."></app-empty-state>
+    <div *ngIf="pages.length > 0" class="card-grid">
+      <article *ngFor="let page of pages" class="metadata-card">
+        <h3><a [routerLink]="['/projects', projectId, 'pages', page.id]">{{ page.name }}</a></h3>
+        <p class="route-value">{{ page.route || 'No route' }}</p>
+        <dl class="metadata-grid">
+          <div><dt>Page ID</dt><dd>{{ page.id }}</dd></div>
+          <div><dt>Project ID</dt><dd>{{ page.projectId }}</dd></div>
+          <div><dt>Created</dt><dd>{{ page.createdAt | date:'medium' }}</dd></div>
+          <div><dt>Created by</dt><dd>{{ page.createdBy }}</dd></div>
+          <div><dt>Updated</dt><dd>{{ page.updatedAt | date:'medium' }}</dd></div>
+          <div><dt>Last modified by</dt><dd>{{ page.lastModifiedBy }}</dd></div>
+        </dl>
+      </article>
+    </div>
+  </ng-container>
+</section>

@@ -11,6 +11,10 @@ export class ApiClientService {
   private readonly http = inject(HttpClient);
   private readonly endpoints = inject(ApiEndpoints);
 
+  get<T>(path: string): Observable<ApiResponse<T>> {
+    return this.http.get<ApiResponse<T>>(this.endpoints.url(path));
+  }
+
   post<T>(path: string, body: unknown): Observable<ApiResponse<T>> {
     return this.http.post<ApiResponse<T>>(this.endpoints.url(path), body);
   }
