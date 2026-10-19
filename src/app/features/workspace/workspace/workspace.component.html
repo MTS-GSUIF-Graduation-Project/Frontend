@@ -17,8 +17,24 @@
 
       <div class="field">
         <label for="schema-version">Schema version</label>
-        <input id="schema-version" type="text" autocomplete="off" [value]="schemaVersion"
-          (input)="onSchemaVersionChange($any($event.target).value)">
+        <select id="schema-version" (change)="onSchemaVersionChange($any($event.target).value)">
+          <option value="" [selected]="!schemaVersion">Choose a schema version</option>
+          <option *ngFor="let version of schemaVersionOptions" [value]="version" [selected]="schemaVersion === version">{{ version }}</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="metadata-starter">Start from a template</label>
+        <select id="metadata-starter" (change)="selectedStarter = $any($event.target).value; starterMessage = ''">
+          <option value="" [selected]="!selectedStarter">Choose a starter</option>
+          <option *ngFor="let starter of starters" [value]="starter.id" [selected]="selectedStarter === starter.id">{{ starter.label }}</option>
+        </select>
+        <p *ngIf="starter as chosen" class="hint">{{ chosen.description }} Supported schema versions: {{ chosen.schemaVersions.join(', ') }}.</p>
+        <p class="hint">Templates only fill the editor. Nothing is saved until you click "Save as new version". Generation also needs API bindings that match the chosen contract.</p>
+        <div class="actions">
+          <button type="button" class="button button--secondary" [disabled]="saving || !starter" (click)="insertStarter()">Insert into editor</button>
+        </div>
+        <p *ngIf="starterMessage" class="notice status--warning" role="status">{{ starterMessage }}</p>
       </div>
 
       <app-json-editor editorId="metadata-json" label="Metadata snapshot (JSON)" [value]="metadataText"

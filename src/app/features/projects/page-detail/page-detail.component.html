@@ -25,7 +25,10 @@
     </article>
 
     <div class="section-heading"><h2>Version history</h2><span>{{ totalVersions }}</span></div>
-    <app-empty-state *ngIf="versions.length === 0" message="No metadata versions found for this page."></app-empty-state>
+    <ng-container *ngIf="versions.length === 0">
+      <app-empty-state message="This page has no metadata versions yet."></app-empty-state>
+      <p class="toolbar"><a class="button button--secondary" [routerLink]="['/projects', projectId, 'pages', pageId, 'workspace']">Start the first metadata version</a></p>
+    </ng-container>
     <div *ngIf="versions.length > 0" class="version-list">
       <article *ngFor="let itemVersion of versions" class="version-card">
         <header>

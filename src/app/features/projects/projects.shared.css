@@ -20,6 +20,10 @@
   text-underline-offset: 0.2em;
 }
 
+.toolbar {
+  margin: 0 0 var(--space-16);
+}
+
 .result-count {
   margin-bottom: var(--space-16);
   font-size: var(--font-size-meta);

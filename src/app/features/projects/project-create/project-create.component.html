@@ -1,0 +1,49 @@
+<section class="browser route-surface" aria-labelledby="page-title">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/home">Home</a><span aria-hidden="true">/</span><a routerLink="/projects">Projects</a><span aria-hidden="true">/</span><span aria-current="page">New project</span>
+  </nav>
+
+  <app-page-header title="Create project" description="A project groups the pages whose metadata you describe and generate from."></app-page-header>
+
+  <form class="detail-panel create-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <p *ngIf="restoredDraft" class="notice status--warning">Restored your unsaved draft from this browser tab.</p>
+
+    <div class="form-field">
+      <label for="project-name">Name</label>
+      <input id="project-name" type="text" formControlName="name" autocomplete="off"
+        [attr.aria-invalid]="fieldMessage('name') ? 'true' : 'false'"
+        [attr.aria-describedby]="fieldMessage('name') ? 'project-name-error' : 'project-name-hint'">
+      <p id="project-name-hint" class="hint">Required. Project names must be unique. Up to 200 characters.</p>
+      <p *ngIf="fieldMessage('name')" id="project-name-error" class="field-error status--error" role="alert">{{ fieldMessage('name') }}</p>
+    </div>
+
+    <div class="form-field">
+      <label for="project-description">Description <span class="hint">(optional)</span></label>
+      <textarea id="project-description" formControlName="description" rows="3"></textarea>
+    </div>
+
+    <p *ngIf="formError" class="notice" [class.status--warning]="uncertain" [class.status--error]="!uncertain" role="alert">{{ formError }}</p>
+
+    <ng-container *ngIf="uncertain">
+      <p class="hint">
+        Creation requests cannot be safely repeated. Check first; if the project was created, submitting again could create
+        a second one under a different name.
+      </p>
+      <div class="form-actions">
+        <button type="button" class="button button--primary" [disabled]="checking" (click)="checkExisting()">
+          {{ checking ? 'Checking' : 'Check whether it was created' }}
+        </button>
+        <button type="button" class="button button--secondary" [disabled]="checking" (click)="submitAgain()">Submit again</button>
+      </div>
+      <p *ngIf="checkMessage" class="notice status--warning">{{ checkMessage }}</p>
+      <div *ngIf="existing" class="form-actions">
+        <button type="button" class="button button--secondary" (click)="openExisting()">Open "{{ existing.name }}"</button>
+      </div>
+    </ng-container>
+
+    <div *ngIf="!uncertain" class="form-actions">
+      <button type="submit" class="button button--primary" [disabled]="submitting">{{ submitting ? 'Creating' : 'Create project' }}</button>
+      <a class="button button--secondary" routerLink="/projects">Cancel</a>
+    </div>
+  </form>
+</section>

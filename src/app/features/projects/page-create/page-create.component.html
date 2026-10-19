@@ -1,0 +1,56 @@
+<section class="browser route-surface" aria-labelledby="page-title">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/home">Home</a><span aria-hidden="true">/</span><a routerLink="/projects">Projects</a><span aria-hidden="true">/</span><a [routerLink]="['/projects', projectId]">{{ project?.name || 'Project' }}</a><span aria-hidden="true">/</span><span aria-current="page">New page</span>
+  </nav>
+
+  <app-page-header title="Create page" [description]="'Add a page to ' + (project?.name || 'this project') + '. You describe its metadata in the workspace next.'"></app-page-header>
+
+  <app-loading-state *ngIf="loading" label="Loading the project."></app-loading-state>
+  <app-error-state *ngIf="!loading && loadError" [message]="loadError" retryLabel="Try again" (retry)="loadProject()"></app-error-state>
+
+  <form *ngIf="!loading && !loadError" class="detail-panel create-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <p *ngIf="restoredDraft" class="notice status--warning">Restored your unsaved draft from this browser tab.</p>
+
+    <div class="form-field">
+      <label for="page-name">Name</label>
+      <input id="page-name" type="text" formControlName="name" autocomplete="off"
+        [attr.aria-invalid]="fieldMessage('name') ? 'true' : 'false'"
+        [attr.aria-describedby]="fieldMessage('name') ? 'page-name-error' : 'page-name-hint'">
+      <p id="page-name-hint" class="hint">Required. Unique within this project. Up to 200 characters.</p>
+      <p *ngIf="fieldMessage('name')" id="page-name-error" class="field-error status--error" role="alert">{{ fieldMessage('name') }}</p>
+    </div>
+
+    <div class="form-field">
+      <label for="page-route">Route <span class="hint">(optional)</span></label>
+      <input id="page-route" type="text" formControlName="route" autocomplete="off" placeholder="/orders"
+        [attr.aria-invalid]="fieldMessage('route') ? 'true' : 'false'"
+        [attr.aria-describedby]="fieldMessage('route') ? 'page-route-error' : 'page-route-hint'">
+      <p id="page-route-hint" class="hint">Unique within this project when set. Up to 255 characters. Leave empty for no route.</p>
+      <p *ngIf="fieldMessage('route')" id="page-route-error" class="field-error status--error" role="alert">{{ fieldMessage('route') }}</p>
+    </div>
+
+    <p *ngIf="formError" class="notice" [class.status--warning]="uncertain" [class.status--error]="!uncertain" role="alert">{{ formError }}</p>
+
+    <ng-container *ngIf="uncertain">
+      <p class="hint">
+        Creation requests cannot be safely repeated. Check first; if the page was created, submitting again could create
+        a second one under a different name.
+      </p>
+      <div class="form-actions">
+        <button type="button" class="button button--primary" [disabled]="checking" (click)="checkExisting()">
+          {{ checking ? 'Checking' : 'Check whether it was created' }}
+        </button>
+        <button type="button" class="button button--secondary" [disabled]="checking" (click)="submitAgain()">Submit again</button>
+      </div>
+      <p *ngIf="checkMessage" class="notice status--warning">{{ checkMessage }}</p>
+      <div *ngIf="existing" class="form-actions">
+        <button type="button" class="button button--secondary" (click)="openExisting()">Open the workspace for "{{ existing.name }}"</button>
+      </div>
+    </ng-container>
+
+    <div *ngIf="!uncertain" class="form-actions">
+      <button type="submit" class="button button--primary" [disabled]="submitting">{{ submitting ? 'Creating' : 'Create page' }}</button>
+      <a class="button button--secondary" [routerLink]="['/projects', projectId]">Cancel</a>
+    </div>
+  </form>
+</section>
