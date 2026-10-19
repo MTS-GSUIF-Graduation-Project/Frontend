@@ -32,4 +32,9 @@ export class ApiClientService {
       responseType: 'blob'
     });
   }
+
+  /** Like `getBlob`, but keeps the full response so callers can read headers. */
+  getBlobResponse(path: string, context?: HttpContext): Observable<HttpResponse<Blob>> {
+    return this.http.get(this.endpoints.url(path), { context, observe: 'response', responseType: 'blob' });
+  }
 }

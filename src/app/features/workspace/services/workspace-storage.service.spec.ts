@@ -15,6 +15,7 @@ describe('WorkspaceStorageService', () => {
 
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     storage = TestBed.inject(WorkspaceStorageService);
   });
 
@@ -36,6 +37,28 @@ describe('WorkspaceStorageService', () => {
     storage.clearAttempt('page-9');
     expect(storage.readAttempt('page-9')).toBeNull();
     expect(sessionStorage.getItem('gsuif.auth')).toBe('session');
+  });
+
+  it('keeps the last run per user and page in localStorage, holding only its ID', () => {
+    storage.writeLastRun('alice', 'page-9', 'run-7');
+
+    expect(storage.readLastRun('alice', 'page-9')).toMatchObject({ runId: 'run-7', pageId: 'page-9' });
+    expect(storage.readLastRun('bob', 'page-9')).toBeNull();
+    expect(storage.readLastRun('alice', 'page-10')).toBeNull();
+    expect(storage.readLastRun('', 'page-9')).toBeNull();
+    expect(Object.keys(localStorage)).toEqual(['gsuif.workspace.lastRun.alice.page-9']);
+    expect(Object.keys(JSON.parse(localStorage.getItem('gsuif.workspace.lastRun.alice.page-9') ?? '{}')).sort())
+      .toEqual(['pageId', 'recordedAt', 'runId']);
+
+    storage.writeLastRun('alice', 'page-9', 'run-8');
+    expect(storage.readLastRun('alice', 'page-9')?.runId).toBe('run-8');
+  });
+
+  it('ignores a corrupt or mismatched last run', () => {
+    localStorage.setItem('gsuif.workspace.lastRun.alice.page-9', '{not json');
+    expect(storage.readLastRun('alice', 'page-9')).toBeNull();
+    localStorage.setItem('gsuif.workspace.lastRun.alice.page-9', JSON.stringify({ runId: 'run-7', pageId: 'page-10', recordedAt: 'x' }));
+    expect(storage.readLastRun('alice', 'page-9')).toBeNull();
   });
 
   it('ignores corrupt or foreign stored values', () => {

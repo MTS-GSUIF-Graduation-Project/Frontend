@@ -166,6 +166,7 @@
   background: none;
   border: 0;
   font-size: 13px;
+  font-weight: 400;
 }
 
 .button--logout:hover {

@@ -3,11 +3,12 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiException } from '../../../core/models/api-response.model';
+import { AuthService } from '../../../core/services/auth.service';
 import { MetadataVersion } from '../../projects/models/browser.model';
 import { newAttemptId } from '../models/attempt-id';
 import { BackendGenerationRequest, GenerationOutcome, GenerationSpecification } from '../models/generation.model';
 import { BackendGenerationService } from '../services/backend-generation.service';
-import { ATTEMPT_RECOVERY } from '../services/generation-ports';
+import { ATTEMPT_RECOVERY, AttemptLookup } from '../services/generation-ports';
 import { PendingAttempt, WorkspaceStorageService } from '../services/workspace-storage.service';
 
 export const RESTORED_ATTEMPT_MESSAGE =
@@ -22,6 +23,16 @@ type PanelState =
 const SETTLED: ReadonlySet<GenerationOutcome['kind']> = new Set(['success', 'rejected', 'failed', 'forbidden', 'not-found']);
 /** Outcomes where resending the exact original request is meaningful. */
 const RETRYABLE: ReadonlySet<GenerationOutcome['kind']> = new Set(['unknown', 'unauthenticated']);
+
+/** What the read-only attempt lookup found for an unresolved attempt. */
+export type AttemptResolution = Extract<AttemptLookup, { kind: 'found' }>;
+
+const STATUS_LABELS: Record<string, string> = {
+  SUCCESS: 'succeeded',
+  FAILED: 'failed',
+  BUILD_FAILED: 'failed its build',
+  INTERRUPTED: 'was interrupted'
+};
 
 /**
  * Submits BACKEND generation exactly once per user action. It never retries on its own and
@@ -44,11 +55,16 @@ export class GenerationPanelComponent implements OnInit {
   state: PanelState = { phase: 'idle' };
   recoveryMessage = '';
   recoveredRunId: string | null = null;
+  /** Set when the lookup found the attempt; IN_PROGRESS keeps it unresolved. */
+  resolution: AttemptResolution | null = null;
   checking = false;
+  /** The newest run started from this browser for this user and page; details come from the server. */
+  lastRunId: string | null = null;
 
   readonly recovery = inject(ATTEMPT_RECOVERY);
   private readonly generation = inject(BackendGenerationService);
   private readonly storage = inject(WorkspaceStorageService);
+  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetector = inject(ChangeDetectorRef);
 
@@ -56,7 +72,16 @@ export class GenerationPanelComponent implements OnInit {
     const pending = this.storage.readAttempt(this.pageId);
     if (pending) {
       this.state = { phase: 'done', attempt: pending, outcome: { kind: 'unknown', message: RESTORED_ATTEMPT_MESSAGE } };
+      // One read-only lookup after a reload. It never resends the request and never repeats.
+      this.checkAttempt();
+      return;
     }
+    this.lastRunId = this.storage.readLastRun(this.auth.getUsername(), this.pageId)?.runId ?? null;
+  }
+
+  /** Shown while nothing newer is on screen, so a reload or revisit still shows the last result. */
+  get showLastRun(): boolean {
+    return this.state.phase === 'idle' && this.lastRunId !== null && this.recoveredRunId === null;
   }
 
   get submitting(): boolean {
@@ -74,7 +99,16 @@ export class GenerationPanelComponent implements OnInit {
   /** An unresolved attempt blocks plain "Generate" so it cannot be replaced by accident. */
   get unresolved(): boolean {
     const outcome = this.outcome;
-    return outcome !== null && !SETTLED.has(outcome.kind);
+    return outcome !== null && !SETTLED.has(outcome.kind) && !this.resolvedByLookup;
+  }
+
+  /** The lookup found the attempt in a final state, so its ID needs no further recovery. */
+  get resolvedByLookup(): boolean {
+    return this.resolution !== null && this.resolution.status !== 'IN_PROGRESS';
+  }
+
+  resolutionLabel(status: string): string {
+    return STATUS_LABELS[status] ?? `ended with status ${status}`;
   }
 
   get canRetrySameAttempt(): boolean {
@@ -133,6 +167,7 @@ export class GenerationPanelComponent implements OnInit {
     this.state = { phase: 'idle' };
     this.recoveryMessage = '';
     this.recoveredRunId = null;
+    this.resolution = null;
     this.generate();
   }
 
@@ -143,13 +178,21 @@ export class GenerationPanelComponent implements OnInit {
     }
     this.checking = true;
     this.recoveryMessage = '';
+    this.resolution = null;
     this.recovery.findRun(attempt.attemptId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: lookup => {
         this.checking = false;
         if (lookup.kind === 'found') {
+          this.resolution = lookup;
           this.recoveredRunId = lookup.runId;
+          this.rememberRun(lookup.runId);
+          if (this.resolvedByLookup) {
+            this.storage.clearAttempt(this.pageId);
+          }
         } else {
-          this.recoveryMessage = 'The server has no record of this attempt, so the original request never started.';
+          // The backend documents that a 404 is a snapshot, not proof the ID cannot be reserved later.
+          this.recoveryMessage = 'The server has no accessible record of this attempt yet. '
+            + 'That does not prove it will never start; check again before deciding to retry.';
         }
         this.changeDetector.detectChanges();
       },
@@ -165,6 +208,7 @@ export class GenerationPanelComponent implements OnInit {
     this.state = { phase: 'submitting', attempt };
     this.recoveryMessage = '';
     this.recoveredRunId = null;
+    this.resolution = null;
     this.activeChange.emit(true);
 
     const request = JSON.parse(attempt.requestJson) as BackendGenerationRequest;
@@ -172,9 +216,32 @@ export class GenerationPanelComponent implements OnInit {
       if (SETTLED.has(outcome.kind)) {
         this.storage.clearAttempt(this.pageId);
       }
+      const runId = runIdOf(outcome);
+      if (runId) {
+        this.rememberRun(runId);
+      }
       this.state = { phase: 'done', attempt, outcome };
       this.activeChange.emit(false);
       this.changeDetector.detectChanges();
     });
+  }
+
+  private rememberRun(runId: string): void {
+    this.lastRunId = runId;
+    this.storage.writeLastRun(this.auth.getUsername(), this.pageId, runId);
+  }
+}
+
+/** The persisted run an outcome refers to, if the server reported one. */
+export function runIdOf(outcome: GenerationOutcome): string | null {
+  switch (outcome.kind) {
+    case 'success':
+      return outcome.result.runId;
+    case 'failed':
+      return outcome.tracking.runId;
+    case 'rejected':
+      return outcome.tracking?.runId ?? null;
+    default:
+      return null;
   }
 }

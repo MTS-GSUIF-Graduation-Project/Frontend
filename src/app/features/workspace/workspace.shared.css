@@ -167,3 +167,47 @@
     padding: var(--space-24) var(--space-16) var(--space-32);
   }
 }
+
+.failure {
+  display: grid;
+  gap: var(--space-12);
+}
+
+.failure h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.failure p {
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.failure p.meta {
+  color: var(--color-muted);
+}
+
+.outcome {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.outcome p {
+  margin: 0;
+  color: inherit;
+}
+
+.technical {
+  color: var(--color-muted);
+  font-size: var(--font-size-meta);
+}
+
+.technical summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.technical[open] summary {
+  margin-bottom: var(--space-8);
+}

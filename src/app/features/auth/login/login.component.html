@@ -39,7 +39,7 @@
           </p>
         </div>
 
-        <button type="submit" class="button button--primary" [disabled]="isBusy">
+        <button type="submit" class="button button--primary" [disabled]="isBusy" [attr.aria-busy]="isBusy || null">
           {{ isBusy ? 'Signing in' : 'Sign in' }}
         </button>
       </form>

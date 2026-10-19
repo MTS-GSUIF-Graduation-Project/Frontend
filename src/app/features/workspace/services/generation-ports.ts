@@ -1,70 +1,52 @@
-import { InjectionToken } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import { ApiException } from '../../../core/models/api-response.model';
+import { InjectionToken, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { HttpAttemptRecovery, HttpContractCatalog, HttpPackageDownload } from './generation-adapters';
 
 /*
- * Integration points whose backend contracts are still pending (SCRUM-65 follow-ups):
- * a contract-listing API, an owner-scoped lookup by attemptId, and a direct package ZIP
- * download. Components depend only on these ports. Replace each default provider with an
- * HTTP adapter once the actual endpoint and DTO are verified; do not guess them here.
+ * Ports for contract discovery, attempt lookup and package download. Components depend
+ * only on these; the default providers are the HTTP adapters for the endpoints merged on
+ * gsuif-backend develop (1d18ade6e5a78f1d066769c4084c711ea66ded8d, PR #49).
  */
 
 export interface ContractOption {
   contractId: string;
   contractVersion: string;
   label: string;
+  operationIds: string[];
+  /** Contract-level eligibility only; the page and specification are checked during generation. */
+  pageCompatibilityChecked: boolean;
 }
 
 export interface ContractCatalog {
   listBackendContracts(): Observable<ContractOption[]>;
 }
 
-/**
- * BACKEND-eligible pairs (updateMode FULL) in the production registry
- * `src/main/resources/generation/packaged-contracts.yaml` of gsuif-backend PR #47 at
- * 9482e1fc25f405f0ec7a780b9f39ffbcf0b9bbc4. Legacy-profile entries and test-only
- * contracts under src/test are deliberately absent. Keep this list in step with that
- * registry, and its pinned test with it, until the listing API replaces it.
- */
-export const VERIFIED_BACKEND_CONTRACTS: readonly ContractOption[] = [
-  { contractId: 'stock-unit-api', contractVersion: '3.0.0', label: 'Stock unit API 3.0.0 (paged)' },
-  { contractId: 'stock-unit-api', contractVersion: '2.0.0', label: 'Stock unit API 2.0.0' },
-  { contractId: 'asset-ticket-api', contractVersion: '2.0.0', label: 'Asset ticket API 2.0.0' }
-];
-
-export class VerifiedContractCatalog implements ContractCatalog {
-  listBackendContracts(): Observable<ContractOption[]> {
-    return of(VERIFIED_BACKEND_CONTRACTS.map(option => ({ ...option })));
-  }
-}
-
 export const CONTRACT_CATALOG = new InjectionToken<ContractCatalog>('CONTRACT_CATALOG', {
   providedIn: 'root',
-  factory: () => new VerifiedContractCatalog()
+  factory: () => inject(HttpContractCatalog)
 });
 
 /** Result of looking up a generation attempt by its client-chosen ID. */
 export type AttemptLookup =
-  | { kind: 'found'; runId: string }
+  | {
+    kind: 'found';
+    runId: string;
+    status: string;
+    metadataVersionId: string;
+    failureStage: string | null;
+    failureCode: string | null;
+  }
+  /** No accessible persisted attempt right now. This does not prove it can never be reserved. */
   | { kind: 'not-found' };
 
 export interface AttemptRecovery {
-  /** False until the backend lookup endpoint is integrated. */
   readonly available: boolean;
   findRun(attemptId: string): Observable<AttemptLookup>;
 }
 
-export class UnavailableAttemptRecovery implements AttemptRecovery {
-  readonly available = false;
-
-  findRun(): Observable<AttemptLookup> {
-    return throwError(() => new ApiException(0, 'Attempt lookup is not available yet.', null));
-  }
-}
-
 export const ATTEMPT_RECOVERY = new InjectionToken<AttemptRecovery>('ATTEMPT_RECOVERY', {
   providedIn: 'root',
-  factory: () => new UnavailableAttemptRecovery()
+  factory: () => inject(HttpAttemptRecovery)
 });
 
 export interface DownloadedFile {
@@ -73,20 +55,11 @@ export interface DownloadedFile {
 }
 
 export interface PackageDownload {
-  /** False until the backend direct ZIP endpoint is integrated. */
   readonly available: boolean;
   downloadZip(runId: string): Observable<DownloadedFile>;
 }
 
-export class UnavailablePackageDownload implements PackageDownload {
-  readonly available = false;
-
-  downloadZip(): Observable<DownloadedFile> {
-    return throwError(() => new ApiException(0, 'ZIP download is not available yet.', null));
-  }
-}
-
 export const PACKAGE_DOWNLOAD = new InjectionToken<PackageDownload>('PACKAGE_DOWNLOAD', {
   providedIn: 'root',
-  factory: () => new UnavailablePackageDownload()
+  factory: () => inject(HttpPackageDownload)
 });

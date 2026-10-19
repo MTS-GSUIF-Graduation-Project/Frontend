@@ -1,7 +1,6 @@
 /**
  * BACKEND generation shapes, mirroring `GenerationApiDtos` and `GenerationSpecification`
- * in gsuif-backend PR #47 at 9482e1fc25f405f0ec7a780b9f39ffbcf0b9bbc4.
- * These contracts exist only on that PR until it merges into develop.
+ * on gsuif-backend develop at 1d18ade6e5a78f1d066769c4084c711ea66ded8d (PRs #47 and #49).
  */
 
 export type RunStatus = 'SUCCESS' | 'BUILD_FAILED' | 'IN_PROGRESS' | 'FAILED' | 'INTERRUPTED';
@@ -77,7 +76,38 @@ export interface RunDetails {
   backendPackage?: BackendPackage;
 }
 
+/** `GET /api/v1/generation/contracts?output=BACKEND` item. */
+export interface AvailableContract {
+  contractId: string;
+  contractVersion: string;
+  label: string;
+  operationIds: string[];
+  updateMode: string;
+  /** Always false: eligibility is contract-level; the page is checked during generation. */
+  pageCompatibilityChecked: boolean;
+}
+
+/** `GET /api/v1/generation/attempts/{attemptId}` body. Failure fields are set only for FAILED. */
+export interface AttemptStatus {
+  runId: string;
+  attemptId: string;
+  status: string;
+  metadataVersionId: string;
+  failureStage: string | null;
+  failureCode: string | null;
+}
+
 /** Read from `X-Generation-*` headers, which the server sends only for a persisted failure owned by the caller. */
+/** `GET /api/v1/generation/runs/{id}/failure`: owner-scoped details of a FAILED run. */
+export interface FailedRunDetails {
+  runId: string;
+  attemptId: string;
+  metadataVersionId: string;
+  status: string;
+  failureStage: string | null;
+  failureCode: string | null;
+}
+
 export interface FailureTracking {
   runId: string;
   stage: string | null;

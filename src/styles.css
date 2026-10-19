@@ -80,29 +80,103 @@ summary:focus {
   outline-offset: var(--focus-outline-offset);
 }
 
+/*
+ * Buttons. Primary: the one main action of a section. Secondary: every other action.
+ * The same classes style <button> and router links; busy buttons keep their colours and
+ * show a spinner, unavailable ones are greyed.
+ */
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
   min-height: var(--control-height);
-  padding: 0 var(--space-16);
+  max-width: 100%;
+  padding: var(--space-8) var(--space-16);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-pill);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
   cursor: pointer;
-  transition: background-color var(--duration-hover) var(--ease-standard);
+  transition:
+    background-color var(--duration-hover) var(--ease-standard),
+    border-color var(--duration-hover) var(--ease-standard),
+    color var(--duration-hover) var(--ease-standard);
 }
 
-.button--secondary {
-  color: var(--color-ink);
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-line);
+.button:focus {
+  outline: none;
+}
+
+.button:focus-visible {
+  outline: var(--focus-outline-width) solid var(--color-ink);
+  outline-offset: var(--focus-outline-offset);
 }
 
 .button--primary {
   color: #FFFFFF;
   background: var(--color-primary);
-  border: var(--border-width) solid var(--color-primary);
+  border-color: var(--color-primary);
 }
 
-.button--primary:disabled {
+.button--primary:hover:not(:disabled, [aria-disabled='true'], [aria-busy='true']) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.button--secondary {
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border-color: var(--color-line);
+}
+
+.button--secondary:hover:not(:disabled, [aria-disabled='true'], [aria-busy='true']) {
+  background: var(--color-hover-row);
+  border-color: var(--color-secondary-hover-line);
+}
+
+.button:disabled:not([aria-busy='true']),
+.button[aria-disabled='true'] {
+  color: var(--color-disabled-ink);
+  background: var(--color-disabled-bg);
+  border-color: var(--color-disabled-line);
+  box-shadow: none;
   cursor: not-allowed;
-  opacity: 1;
+}
+
+.button[aria-busy='true'] {
+  cursor: progress;
+}
+
+.button[aria-busy='true']::before {
+  content: '';
+  flex: none;
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: button-spin var(--duration-spinner) linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* On narrow screens each action in a row takes the full width, in reading order. */
+@media (max-width: 479px) {
+  .actions > .button,
+  .form-actions > .button,
+  .toolbar > .button,
+  .error-state > .button {
+    flex: 1 1 100%;
+    width: 100%;
+  }
 }
 
 .status--error,

@@ -44,7 +44,7 @@
       <p *ngIf="saveMessage" class="notice status--success" role="status">{{ saveMessage }}</p>
 
       <div class="actions">
-        <button type="button" class="button button--primary" [disabled]="saving || !metadataDirty" (click)="save()">
+        <button type="button" class="button button--primary" [disabled]="saving || !metadataDirty" [attr.aria-busy]="saving || null" (click)="save()">
           {{ saving ? 'Saving' : 'Save as new version' }}
         </button>
         <button type="button" class="button button--secondary" [disabled]="saving || !metadataDirty" (click)="discardMetadataChanges()">
@@ -58,12 +58,22 @@
 
       <div class="field">
         <label for="contract">API contract</label>
-        <select id="contract" [value]="selectedContract" (change)="onContractChange($any($event.target).value)">
+        <app-loading-state *ngIf="contractsLoading" label="Loading the available contracts."></app-loading-state>
+        <app-error-state *ngIf="!contractsLoading && contractsError" [message]="contractsError" retryLabel="Try again"
+          (retry)="loadContracts()"></app-error-state>
+        <select *ngIf="!contractsLoading && !contractsError" id="contract" (change)="onContractChange($any($event.target).value)">
           <option value="" [selected]="!selectedContract">Choose a contract</option>
           <option *ngFor="let option of contracts" [value]="option.contractId + '@' + option.contractVersion"
-            [selected]="selectedContract === option.contractId + '@' + option.contractVersion">{{ option.label }}</option>
+            [selected]="selectedContract === option.contractId + '@' + option.contractVersion">{{ contractLabel(option) }}</option>
         </select>
-        <p class="hint">The server checks that the page's metadata bindings and the entity fields match this contract.</p>
+        <p *ngIf="contractNotice" class="notice status--warning" role="status">{{ contractNotice }}</p>
+        <p *ngIf="selectedContractOption as chosen" class="hint">
+          Operation IDs for bindingOperations: <code>{{ chosen.operationIds.join(', ') }}</code>.
+        </p>
+        <p class="hint">
+          The server lists contracts it can generate from, without checking this page. During generation it checks that the
+          page's metadata bindings and the entity fields match the chosen contract.
+        </p>
       </div>
 
       <app-json-editor editorId="specification-json" label="Specification (JSON)" [value]="specText"
