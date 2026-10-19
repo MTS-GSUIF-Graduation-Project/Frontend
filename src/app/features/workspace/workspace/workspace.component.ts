@@ -44,6 +44,9 @@ export class WorkspaceComponent implements OnInit, LeaveWarning {
   page: Page | null = null;
   current: MetadataVersion | null = null;
   contracts: ContractOption[] = [];
+  contractsLoading = false;
+  contractsError = '';
+  contractNotice = '';
   loading = true;
   loadError = '';
 
@@ -87,6 +90,15 @@ export class WorkspaceComponent implements OnInit, LeaveWarning {
     return saved && !SUPPORTED_SCHEMA_VERSIONS.includes(saved) ? [...SUPPORTED_SCHEMA_VERSIONS, saved] : [...SUPPORTED_SCHEMA_VERSIONS];
   }
 
+  get selectedContractOption(): ContractOption | null {
+    return this.contracts.find(option => contractKey(option) === this.selectedContract) ?? null;
+  }
+
+  /** Two versions of one API share a title, so the version is always shown. */
+  contractLabel(option: ContractOption): string {
+    return `${option.label} ${option.contractVersion}`;
+  }
+
   get metadataDirty(): boolean {
     return this.metadataText !== this.savedMetadataText || this.schemaVersion !== this.savedSchemaVersion;
   }
@@ -111,21 +123,46 @@ export class WorkspaceComponent implements OnInit, LeaveWarning {
     this.loadError = '';
     forkJoin({
       page: this.browser.getPage(this.projectId, this.pageId),
-      current: this.metadata.getCurrent(this.pageId),
-      contracts: this.catalog.listBackendContracts()
+      current: this.metadata.getCurrent(this.pageId)
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ page, current, contracts }) => {
+      next: ({ page, current }) => {
         this.page = page;
-        this.contracts = contracts;
         this.applySaved(current);
         this.restoreDraft();
         this.refreshSpecification();
         this.loading = false;
         this.changeDetector.detectChanges();
+        this.loadContracts();
       },
       error: error => {
         this.loadError = error instanceof ApiException ? error.clientMessage : 'Unable to load the workspace.';
         this.loading = false;
+        this.changeDetector.detectChanges();
+      }
+    });
+  }
+
+  /** Loaded on its own so a catalog failure never blocks metadata editing. */
+  loadContracts(): void {
+    this.contractsLoading = true;
+    this.contractsError = '';
+    this.catalog.listBackendContracts().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: contracts => {
+        this.contracts = contracts;
+        this.contractsLoading = false;
+        if (this.selectedContract && !this.selectedContractOption) {
+          this.contractNotice = `The previously selected contract ${this.selectedContract.replace('@', ' ')} is no longer offered by the server. Choose another.`;
+          this.selectedContract = '';
+          this.persistDraft();
+        }
+        this.refreshSpecification();
+        this.changeDetector.detectChanges();
+      },
+      error: error => {
+        this.contracts = [];
+        this.contractsLoading = false;
+        this.contractsError = error instanceof ApiException ? error.clientMessage : 'Unable to load the available contracts.';
+        this.refreshSpecification();
         this.changeDetector.detectChanges();
       }
     });
@@ -151,6 +188,7 @@ export class WorkspaceComponent implements OnInit, LeaveWarning {
 
   onContractChange(key: string): void {
     this.selectedContract = key;
+    this.contractNotice = '';
     this.refreshSpecification();
     this.persistDraft();
   }
@@ -283,9 +321,11 @@ export class WorkspaceComponent implements OnInit, LeaveWarning {
 
   private refreshSpecification(): void {
     this.specification = null;
-    const contract = this.contracts.find(option => contractKey(option) === this.selectedContract);
+    const contract = this.selectedContractOption;
     if (!contract) {
-      this.specificationProblem = 'Choose a contract.';
+      this.specificationProblem = this.contractsError
+        ? 'The available contracts could not be loaded. Try again before generating.'
+        : 'Choose a contract.';
       return;
     }
 

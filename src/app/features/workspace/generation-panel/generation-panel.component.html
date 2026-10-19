@@ -9,82 +9,98 @@
   <p *ngIf="blockedReason && !submitting" class="notice status--warning">{{ blockedReason }}</p>
 
   <div class="actions">
-    <button type="button" class="button button--primary" [disabled]="!canGenerate" (click)="generate()">
+    <button type="button" class="button button--primary" [disabled]="!canGenerate" [attr.aria-busy]="submitting || null" (click)="generate()">
       {{ submitting ? 'Generating' : 'Generate backend' }}
     </button>
   </div>
 
   <ng-container *ngIf="submitting">
     <app-loading-state label="Generating the backend. This can take several minutes; the server keeps working if this page loses its connection."></app-loading-state>
-    <p class="meta">Attempt ID: <code>{{ attempt?.attemptId }}</code></p>
+    <details class="technical">
+      <summary>Technical details</summary>
+      <p class="meta">Attempt ID: {{ attempt?.attemptId }}</p>
+    </details>
   </ng-container>
 
   <ng-container *ngIf="outcome as result">
     <ng-container [ngSwitch]="result.kind">
       <ng-container *ngSwitchCase="'success'">
-        <p class="notice status--success" role="status">Generation succeeded.</p>
+        <div class="notice status--success outcome" role="status">
+          <p><strong>Your backend was generated.</strong></p>
+          <p>Review the files below, then download the ZIP.</p>
+        </div>
       </ng-container>
 
       <ng-container *ngSwitchCase="'rejected'">
-        <div class="notice status--error" role="alert">
-          <p>The server rejected the request: {{ result.kind === 'rejected' ? result.message : '' }}</p>
+        <div class="notice status--error outcome" role="alert">
+          <p><strong>The request was not accepted.</strong></p>
+          <p>{{ result.kind === 'rejected' ? result.message : '' }}</p>
           <ul *ngIf="result.kind === 'rejected' && result.errors" class="error-list">
             <li *ngFor="let error of result.errors | keyvalue"><code>{{ error.key }}</code>: {{ error.value }}</li>
           </ul>
-          <p *ngIf="result.kind === 'rejected' && result.tracking">
-            Recorded as failed attempt <code>{{ result.tracking.runId }}</code> ({{ result.tracking.stage }} / {{ result.tracking.code }}).
-          </p>
+          <p><strong>What you can do:</strong> correct the fields listed, save if you changed the metadata, then generate again.</p>
         </div>
       </ng-container>
 
       <ng-container *ngSwitchCase="'failed'">
-        <p class="notice status--error" role="alert" *ngIf="result.kind === 'failed'">
-          Generation failed at stage {{ result.tracking.stage || 'unknown' }} ({{ result.tracking.code || 'no code' }}). No package was produced.
+        <p class="notice status--error" role="alert">
+          <strong>Generation failed, and no backend was saved.</strong> What happened and what you can do are shown below.
         </p>
       </ng-container>
 
       <ng-container *ngSwitchCase="'forbidden'">
-        <p class="notice status--error" role="alert">
-          {{ result.kind === 'forbidden' ? result.message : '' }} Generation needs access to this page and its metadata versions.
-        </p>
+        <div class="notice status--error outcome" role="alert">
+          <p><strong>You do not have access to generate from this page.</strong></p>
+          <p>{{ result.kind === 'forbidden' ? result.message : '' }}</p>
+          <p><strong>What you can do:</strong> ask an administrator for access to this page and its metadata versions.</p>
+        </div>
       </ng-container>
 
       <ng-container *ngSwitchCase="'not-found'">
-        <p class="notice status--error" role="alert">{{ result.kind === 'not-found' ? result.message : '' }}</p>
+        <div class="notice status--error outcome" role="alert">
+          <p><strong>This page or its saved metadata could not be found.</strong></p>
+          <p>{{ result.kind === 'not-found' ? result.message : '' }}</p>
+          <p><strong>What you can do:</strong> reload the workspace. If the page was deleted, open another page.</p>
+        </div>
       </ng-container>
 
       <ng-container *ngSwitchCase="'unauthenticated'">
-        <p class="notice status--warning" role="alert">
-          Your session ended before the server answered. Sign in again, then use "Retry with the same attempt ID".
-        </p>
+        <div class="notice status--warning outcome" role="alert">
+          <p><strong>Your session ended before the server answered.</strong></p>
+          <p><strong>What you can do:</strong> sign in again, then use "Retry with the same attempt ID". It does not start a second generation if the first one reached the server.</p>
+        </div>
       </ng-container>
 
       <ng-container *ngSwitchCase="'attempt-unavailable'">
-        <p class="notice status--warning" role="alert">
-          This attempt ID is already in use on the server: the original request is still running or has failed.
-          Its result cannot be retrieved from this page yet.
-        </p>
+        <div class="notice status--warning outcome" role="alert">
+          <p><strong>This attempt is still running or has already ended on the server.</strong></p>
+          <p><strong>What you can do:</strong> use "Check attempt status" to see its result, or start a new attempt.</p>
+        </div>
       </ng-container>
 
       <ng-container *ngSwitchCase="'attempt-conflict'">
-        <p class="notice status--warning" role="alert">
-          The server has this attempt ID with different inputs, for example because the page's current metadata version changed.
-        </p>
+        <div class="notice status--warning outcome" role="alert">
+          <p><strong>This attempt was sent earlier with different inputs.</strong></p>
+          <p>For example, the page's saved metadata changed since then.</p>
+          <p><strong>What you can do:</strong> start a new attempt to generate from the page as it is now.</p>
+        </div>
       </ng-container>
 
       <ng-container *ngSwitchCase="'unknown'">
-        <p class="notice status--warning" role="alert">
-          Outcome unknown. {{ result.kind === 'unknown' ? result.message : '' }}
-        </p>
+        <div *ngIf="!resolvedByLookup" class="notice status--warning outcome" role="alert">
+          <p><strong>We don't know yet whether generation finished.</strong></p>
+          <p>{{ result.kind === 'unknown' ? result.message : '' }}</p>
+          <p><strong>What you can do:</strong> check the attempt's status before trying again, so you don't pay for two attempts.</p>
+        </div>
       </ng-container>
     </ng-container>
 
     <div *ngIf="unresolved && attempt as pending" class="panel">
-      <p class="meta">Attempt ID <code>{{ pending.attemptId }}</code>, sent {{ pending.submittedAt | date:'medium' }}.</p>
+      <p class="meta">Sent {{ pending.submittedAt | date:'medium' }}.</p>
 
       <div class="actions">
-        <button *ngIf="recovery.available" type="button" class="button button--secondary" [disabled]="checking" (click)="checkAttempt()">
-          {{ checking ? 'Checking' : 'Check attempt status' }}
+        <button *ngIf="recovery.available" type="button" class="button button--secondary" [disabled]="checking" [attr.aria-busy]="checking || null" (click)="checkAttempt()">
+          {{ checking ? 'Checking' : (resolution ? 'Check again' : 'Check attempt status') }}
         </button>
         <button *ngIf="canRetrySameAttempt" type="button" class="button button--secondary" [disabled]="submitting" (click)="retrySameAttempt()">
           Retry with the same attempt ID
@@ -106,16 +122,39 @@
         "Start a new attempt" uses a new attempt ID and your current specification. If the original attempt is still running,
         both may run and both may incur cost.
       </p>
+      <p *ngIf="resolution?.status === 'IN_PROGRESS'" class="notice status--warning" role="status">
+        The attempt is still running on the server. Nothing is checked automatically; use "Check again" later.
+      </p>
       <p *ngIf="recoveryMessage" class="notice status--warning">{{ recoveryMessage }}</p>
+      <details class="technical">
+        <summary>Technical details</summary>
+        <p class="meta">Attempt ID: {{ pending.attemptId }}</p>
+      </details>
     </div>
+
+    <ng-container *ngIf="resolvedByLookup && resolution as found">
+      <p class="notice" role="status" [class.status--success]="found.status === 'SUCCESS'" [class.status--error]="found.status !== 'SUCCESS'">
+        The server finished this attempt: it {{ resolutionLabel(found.status) }}.<ng-container *ngIf="found.status !== 'SUCCESS'">
+        What happened and what you can do are shown below.</ng-container>
+      </p>
+      <p *ngIf="currentVersion && found.metadataVersionId !== currentVersion.id" class="notice status--warning">
+        That attempt used a different saved metadata version from the one shown on this page.
+      </p>
+    </ng-container>
 
     <app-run-result *ngIf="result.kind === 'success'" [runId]="result.result.runId"></app-run-result>
     <app-run-result *ngIf="result.kind === 'failed'" [runId]="result.tracking.runId"></app-run-result>
+    <app-run-result *ngIf="result.kind === 'rejected' && result.tracking" [runId]="result.tracking.runId"></app-run-result>
     <p *ngIf="result.kind === 'success' && currentVersion && result.result.metadataVersionId !== currentVersion.id" class="notice status--warning">
-      The server generated from metadata version {{ result.result.metadataVersionId }}, which is not the version shown on this page.
+      The server generated from a different saved metadata version from the one shown on this page.
       The page's current version may have changed in the meantime.
     </p>
   </ng-container>
 
   <app-run-result *ngIf="recoveredRunId" [runId]="recoveredRunId"></app-run-result>
+
+  <ng-container *ngIf="showLastRun && lastRunId">
+    <p class="meta">Most recent run started from this browser for this page. Its status and details are loaded from the server.</p>
+    <app-run-result [runId]="lastRunId"></app-run-result>
+  </ng-container>
 </section>

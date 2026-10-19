@@ -7,14 +7,41 @@
   <ng-container *ngIf="!loading && !errorMessage && run as item">
     <dl class="facts">
       <div><dt>Status</dt><dd>{{ statusLabel(item.status) }}</dd></div>
-      <div><dt>Run ID</dt><dd>{{ item.id }}</dd></div>
-      <div><dt>Metadata version</dt><dd>{{ item.metadataVersionId }}</dd></div>
       <div><dt>Updated</dt><dd>{{ item.updatedAt | date:'medium' }}</dd></div>
-      <ng-container *ngIf="backendPackage as pkg">
-        <div><dt>Contract</dt><dd>{{ pkg.contractId }} {{ pkg.contractVersion }}</dd></div>
-        <div><dt>Manifest SHA-256</dt><dd>{{ pkg.manifestSha256 }}</dd></div>
-      </ng-container>
+      <div *ngIf="backendPackage as pkg"><dt>Contract</dt><dd>{{ pkg.contractId }} {{ pkg.contractVersion }}</dd></div>
     </dl>
+
+    <section *ngIf="item.status === 'FAILED'" class="notice status--error failure" aria-labelledby="failure-heading">
+      <app-loading-state *ngIf="failureLoading" label="Loading what happened."></app-loading-state>
+      <ng-container *ngIf="!failureLoading && failure as details">
+        <h4 id="failure-heading">{{ describe(details.failureCode).summary }}</h4>
+        <p>{{ describe(details.failureCode).explanation }}</p>
+        <p><strong>What you can do:</strong> {{ describe(details.failureCode).nextStep }}</p>
+      </ng-container>
+      <ng-container *ngIf="!failureLoading && failureError">
+        <h4 id="failure-heading">Generation failed.</h4>
+        <p role="alert">We could not load the reason: {{ failureError }}</p>
+        <div class="actions">
+          <button type="button" class="button button--secondary" (click)="loadFailure()">Try loading the reason again</button>
+        </div>
+      </ng-container>
+    </section>
+    <p *ngIf="statusExplanation(item.status) as explanation" class="notice status--warning">{{ explanation }}</p>
+
+    <details class="technical">
+      <summary>Technical details</summary>
+      <dl class="facts">
+        <div><dt>Run ID</dt><dd>{{ item.id }}</dd></div>
+        <div *ngIf="failure?.attemptId as attemptId"><dt>Attempt ID</dt><dd>{{ attemptId }}</dd></div>
+        <div><dt>Metadata version</dt><dd>{{ item.metadataVersionId }}</dd></div>
+        <ng-container *ngIf="failure as details">
+          <div><dt>Failure stage</dt><dd>{{ stageLabel(details.failureStage) }} ({{ details.failureStage || 'none' }})</dd></div>
+          <div><dt>Failure code</dt><dd>{{ details.failureCode || 'none' }}</dd></div>
+        </ng-container>
+        <div *ngIf="backendPackage as pkg"><dt>Manifest SHA-256</dt><dd>{{ pkg.manifestSha256 }}</dd></div>
+      </dl>
+      <p *ngIf="item.status !== 'SUCCESS'" class="meta">When asking for help, quote the run ID. The server log records more detail for it.</p>
+    </details>
 
     <div class="actions">
       <button type="button" class="button button--secondary" (click)="load()">Refresh status</button>
@@ -27,16 +54,15 @@
       <p class="meta">This is the server's validation scope for the package. It is not a runtime or production acceptance result.</p>
     </ng-container>
 
-    <p *ngIf="!filesAvailable" class="notice status--warning">
-      Files are available only for a successful, committed backend package. This run's status is {{ statusLabel(item.status) }}.
+    <p *ngIf="!filesAvailable" class="meta">
+      Files and the ZIP download appear here only when a backend package was generated and saved successfully.
     </p>
 
     <ng-container *ngIf="filesAvailable">
       <div class="actions">
-        <button *ngIf="zip.available" type="button" class="button button--primary" [disabled]="zipBusy" (click)="downloadZip()">
+        <button *ngIf="zip.available" type="button" class="button button--primary" [disabled]="zipBusy" [attr.aria-busy]="zipBusy || null" (click)="downloadZip()">
           {{ zipBusy ? 'Preparing ZIP' : 'Download ZIP' }}
         </button>
-        <p *ngIf="!zip.available" class="meta">ZIP download is not available yet. You can view and download individual files below.</p>
       </div>
       <p *ngIf="downloadError" class="notice status--error" role="alert">{{ downloadError }}</p>
 

@@ -1617,13 +1617,11 @@ Scope delivered in the frontend:
 - BACKEND generation sent once per explicit action, with a client-generated attempt ID. Outcomes: success, rejected, failed (tracked), forbidden, not found, unauthenticated, attempt in use, attempt conflict, and unknown. No automatic retries and no automatic replacement attempt IDs. Unconfirmed attempts are kept as `gsuif.workspace.attempt.<pageId>` (the exact request JSON, never credentials). Recovery is "Retry with the same attempt ID" (exact original request) or an explicit "Start a new attempt".
 - Run details, validation scope as reported, and registered files viewed as escaped text or downloaded, only for a committed `SUCCESS` package.
 
-Pending backend contracts, isolated behind ports in `features/workspace/services/generation-ports.ts`:
+Connected backend contracts (gsuif-backend develop `1d18ade6e5a78f1d066769c4084c711ea66ded8d`, PR #49), behind the ports in `features/workspace/services/generation-ports.ts` with HTTP adapters in `generation-adapters.ts`:
 
-- `CONTRACT_CATALOG`: a static list of the BACKEND-eligible (updateMode FULL) registry pairs at the PR head above, until the contract-listing API exists.
-- `ATTEMPT_RECOVERY`: unavailable until the owner-scoped lookup by attemptId exists.
-- `PACKAGE_DOWNLOAD`: unavailable until the direct package ZIP endpoint exists. Do not build the export-destination workflow in the UI.
-
-Replace each default provider with an HTTP adapter only after its actual endpoint and DTO are verified on a backend revision.
+- `CONTRACT_CATALOG`: `GET /api/v1/generation/contracts?output=BACKEND`. There is no built-in fallback list. Eligibility is contract-level (`pageCompatibilityChecked: false`); the page is checked during generation.
+- `ATTEMPT_RECOVERY`: `GET /api/v1/generation/attempts/{attemptId}`, owner-scoped. A 404 (missing or another user's attempt) is not proof the ID cannot be reserved later. The workspace makes one read-only lookup when it restores an unresolved attempt, and otherwise only on request; it never polls and never resends.
+- `PACKAGE_DOWNLOAD`: `GET /api/v1/generation/runs/{runId}/package.zip`, the verified complete package (at most 512 files and 64 MiB). Incomplete, oversized or damaged packages return a generic 500. No export destination is involved.
 
 ---
 

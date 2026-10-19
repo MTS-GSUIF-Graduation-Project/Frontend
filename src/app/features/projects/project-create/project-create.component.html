@@ -30,7 +30,7 @@
         a second one under a different name.
       </p>
       <div class="form-actions">
-        <button type="button" class="button button--primary" [disabled]="checking" (click)="checkExisting()">
+        <button type="button" class="button button--primary" [disabled]="checking" [attr.aria-busy]="checking || null" (click)="checkExisting()">
           {{ checking ? 'Checking' : 'Check whether it was created' }}
         </button>
         <button type="button" class="button button--secondary" [disabled]="checking" (click)="submitAgain()">Submit again</button>
@@ -42,7 +42,7 @@
     </ng-container>
 
     <div *ngIf="!uncertain" class="form-actions">
-      <button type="submit" class="button button--primary" [disabled]="submitting">{{ submitting ? 'Creating' : 'Create project' }}</button>
+      <button type="submit" class="button button--primary" [disabled]="submitting" [attr.aria-busy]="submitting || null">{{ submitting ? 'Creating' : 'Create project' }}</button>
       <a class="button button--secondary" routerLink="/projects">Cancel</a>
     </div>
   </form>

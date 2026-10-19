@@ -128,6 +128,25 @@ describe('BackendGenerationService (mocked HTTP)', () => {
     await expect(outcome).resolves.toMatchObject({ kind: 'unknown' });
   });
 
+  it('reads the persisted failure of a run inline, without the global error toast', async () => {
+    const details = firstValueFrom(service.getFailure('run-7'));
+    const sent = http.expectOne('/api/v1/generation/runs/run-7/failure');
+    expect(sent.request.method).toBe('GET');
+    expect(sent.request.context.get(SKIP_ERROR_NOTIFICATION)).toBe(true);
+    const body = { runId: 'run-7', attemptId: 'a-1', metadataVersionId: 'v-3', status: 'FAILED', failureStage: 'FINAL_VALIDATION', failureCode: 'RESULT_VALIDATION_FAILED' };
+    sent.flush({ status: 'OK', clientMessage: 'Failed generation attempt retrieved', statusCode: 200, body, errors: null });
+
+    await expect(details).resolves.toEqual(body);
+  });
+
+  it('reports a failure lookup error with the server message', async () => {
+    const details = firstValueFrom(service.getFailure('run-7'));
+    http.expectOne('/api/v1/generation/runs/run-7/failure').flush(error(404, 'Failed generation attempt not found', null),
+      { status: 404, statusText: 'Not Found' });
+
+    await expect(details).rejects.toMatchObject({ statusCode: 404, clientMessage: 'Failed generation attempt not found' });
+  });
+
   describe('artifacts', () => {
     const artifactUrl = '/api/v1/generation/runs/run-7/artifacts/download?path=backend/src/Main.java';
 

@@ -9,6 +9,7 @@ import {
   ArtifactText,
   BackendCreated,
   BackendGenerationRequest,
+  FailedRunDetails,
   FailureTracking,
   GenerationOutcome,
   RunDetails
@@ -27,6 +28,7 @@ const FAILED = 'The generation attempt failed.';
 const FORBIDDEN = 'You do not have access to generate from this page.';
 const NOT_FOUND = 'The page or its selected metadata version was not found.';
 const RUN_FAILED = 'Unable to load the generation run.';
+const FAILURE_DETAILS_FAILED = 'Unable to load the failure details.';
 const ARTIFACT_FAILED = 'Unable to load the generated file.';
 
 /** Statuses after which the server may or may not have processed the request. */
@@ -58,6 +60,14 @@ export class BackendGenerationService {
     return this.api.get<RunDetails>(`${GENERATION_ROOT}/runs/${encodeURIComponent(runId)}`, this.inline).pipe(
       map(response => unwrap(response, RUN_FAILED)),
       catchError(error => throwError(() => toApiException(error, RUN_FAILED)))
+    );
+  }
+
+  /** The persisted stage and code of a FAILED run, for its owner. */
+  getFailure(runId: string): Observable<FailedRunDetails> {
+    return this.api.get<FailedRunDetails>(`${GENERATION_ROOT}/runs/${encodeURIComponent(runId)}/failure`, this.inline).pipe(
+      map(response => unwrap(response, FAILURE_DETAILS_FAILED)),
+      catchError(error => throwError(() => toApiException(error, FAILURE_DETAILS_FAILED)))
     );
   }
 

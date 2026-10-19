@@ -1,7 +1,8 @@
 import { ChangeDetectorRef, Component, DestroyRef, Input, OnChanges, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiException } from '../../../core/models/api-response.model';
-import { ArtifactText, BackendPackage, RunDetails } from '../models/generation.model';
+import { FailureMessage, STATUS_EXPLANATIONS, describeFailure, failureStageLabel } from '../models/failure-explanations';
+import { ArtifactText, BackendPackage, FailedRunDetails, RunDetails } from '../models/generation.model';
 import { BackendGenerationService, MAX_VIEWABLE_BYTES } from '../services/backend-generation.service';
 import { FileSaverService, safeFileName } from '../services/file-saver.service';
 import { PACKAGE_DOWNLOAD } from '../services/generation-ports';
@@ -27,6 +28,11 @@ export class RunResultComponent implements OnChanges {
   run: RunDetails | null = null;
   loading = false;
   errorMessage = '';
+
+  /** Stage and code of a FAILED run, read from the server rather than from the original response. */
+  failure: FailedRunDetails | null = null;
+  failureLoading = false;
+  failureError = '';
 
   selectedPath: string | null = null;
   viewer: ArtifactText | null = null;
@@ -55,6 +61,18 @@ export class RunResultComponent implements OnChanges {
     return STATUS_LABELS[status] ?? status;
   }
 
+  statusExplanation(status: string): string | null {
+    return STATUS_EXPLANATIONS[status] ?? null;
+  }
+
+  stageLabel(stage: string | null): string {
+    return failureStageLabel(stage);
+  }
+
+  describe(code: string | null): FailureMessage {
+    return describeFailure(code);
+  }
+
   ngOnChanges(): void {
     this.load();
   }
@@ -67,10 +85,34 @@ export class RunResultComponent implements OnChanges {
         this.run = run;
         this.loading = false;
         this.changeDetector.detectChanges();
+        if (run.status === 'FAILED') {
+          this.loadFailure();
+        } else {
+          this.failure = null;
+          this.failureError = '';
+        }
       },
       error: error => {
         this.errorMessage = messageOf(error, 'Unable to load the generation run.');
         this.loading = false;
+        this.changeDetector.detectChanges();
+      }
+    });
+  }
+
+  loadFailure(): void {
+    this.failureLoading = true;
+    this.failureError = '';
+    this.generation.getFailure(this.runId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: failure => {
+        this.failure = failure;
+        this.failureLoading = false;
+        this.changeDetector.detectChanges();
+      },
+      error: error => {
+        this.failure = null;
+        this.failureError = messageOf(error, 'Unable to load the failure details.');
+        this.failureLoading = false;
         this.changeDetector.detectChanges();
       }
     });

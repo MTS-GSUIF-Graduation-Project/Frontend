@@ -6,6 +6,7 @@ import { ApiException } from '../../../core/models/api-response.model';
 import { MetadataVersion } from '../../projects/models/browser.model';
 import { MetadataBrowserService } from '../../projects/services/metadata-browser.service';
 import { BackendGenerationService } from '../services/backend-generation.service';
+import { CONTRACT_CATALOG, ContractOption } from '../services/generation-ports';
 import { WorkspaceMetadataService } from '../services/workspace-metadata.service';
 import { WorkspaceStorageService } from '../services/workspace-storage.service';
 import { WorkspaceModule } from '../workspace.module';
@@ -17,6 +18,7 @@ describe('WorkspaceComponent (mocked services)', () => {
   let metadata: { getCurrent: ReturnType<typeof vi.fn>; createVersion: ReturnType<typeof vi.fn> };
   let generation: { generate: ReturnType<typeof vi.fn>; getRun: ReturnType<typeof vi.fn> };
   let confirm: ReturnType<typeof vi.fn>;
+  let listContracts: ReturnType<typeof vi.fn>;
 
   async function render(current: MetadataVersion | null = version(3)): Promise<void> {
     metadata.getCurrent.mockReturnValue(of(current));
@@ -28,7 +30,8 @@ describe('WorkspaceComponent (mocked services)', () => {
         { provide: MetadataBrowserService, useValue: { getPage: () => of(page()) } },
         { provide: WorkspaceMetadataService, useValue: metadata },
         { provide: BackendGenerationService, useValue: generation },
-        { provide: CONFIRM_ACTION, useValue: confirm }
+        { provide: CONFIRM_ACTION, useValue: confirm },
+        { provide: CONTRACT_CATALOG, useValue: { listBackendContracts: listContracts } }
       ]
     }).compileComponents();
 
@@ -42,6 +45,7 @@ describe('WorkspaceComponent (mocked services)', () => {
     metadata = { getCurrent: vi.fn(), createVersion: vi.fn() };
     generation = { generate: vi.fn(), getRun: vi.fn(() => new Observable(() => undefined)) };
     confirm = vi.fn(() => true);
+    listContracts = vi.fn(() => of(serverContracts()));
   });
 
   function host(): HTMLElement {
@@ -141,11 +145,12 @@ describe('WorkspaceComponent (mocked services)', () => {
     expect(component.leaveWarning()).toContain('unsaved metadata changes');
   });
 
-  it('offers only the verified contracts and applies the chosen one to the specification', async () => {
+  it('offers the server-listed contracts with their versions and applies the chosen one to the specification', async () => {
     await render();
 
+    expect(listContracts).toHaveBeenCalledOnce();
     const options = Array.from(host().querySelectorAll('#contract option')).map(option => option.textContent?.trim());
-    expect(options).toEqual(['Choose a contract', 'Stock unit API 3.0.0 (paged)', 'Stock unit API 2.0.0', 'Asset ticket API 2.0.0']);
+    expect(options).toEqual(['Choose a contract', 'StockUnit fixture API 2.0.0', 'StockUnit fixture API 3.0.0', 'AssetTicket API 2.0.0']);
     expect(component.generationBlockedReason).toBe('Choose a contract.');
 
     type('#contract', 'stock-unit-api@3.0.0', 'change');
@@ -252,6 +257,41 @@ describe('WorkspaceComponent (mocked services)', () => {
     expect(confirm).not.toHaveBeenCalled();
   });
 
+  it('shows the operation IDs of the chosen contract and that the page is checked during generation', async () => {
+    await render();
+    type('#contract', 'stock-unit-api@3.0.0', 'change');
+
+    expect(host().textContent).toContain('registerStockUnit, inspectStockUnit, scanStockUnits, replaceStockUnit, discardStockUnit');
+    expect(host().textContent).toContain('without checking this page');
+  });
+
+  it('keeps metadata editing available when the contract list fails, and retries on request', async () => {
+    listContracts.mockReturnValueOnce(throwError(() => new ApiException(500, 'Unable to load the available contracts.', null)));
+    await render();
+
+    expect(host().textContent).toContain('Unable to load the available contracts.');
+    expect(host().querySelector('#contract')).toBeNull();
+    expect(host().querySelector('#metadata-json')).not.toBeNull();
+    expect(component.generationBlockedReason).toContain('could not be loaded');
+
+    button('Try again')?.click();
+    fixture.detectChanges();
+
+    expect(listContracts).toHaveBeenCalledTimes(2);
+    expect(host().querySelector('#contract')).not.toBeNull();
+  });
+
+  it('clears a drafted contract that the server no longer offers', async () => {
+    new WorkspaceStorageService().writeDraft('page-9', {
+      schemaVersion: '1.2.0', metadataText: '{"components": []}', specText: '{}',
+      contractKey: 'retired-api@1.0.0', baseVersionId: 'version-3'
+    });
+    await render();
+
+    expect(component.selectedContract).toBe('');
+    expect(host().textContent).toContain('retired-api 1.0.0 is no longer offered by the server');
+  });
+
   it('shows a load error with a retry', async () => {
     metadata.getCurrent.mockReturnValue(throwError(() => new ApiException(403, 'Access denied', null)));
     await TestBed.configureTestingModule({
@@ -262,7 +302,8 @@ describe('WorkspaceComponent (mocked services)', () => {
         { provide: MetadataBrowserService, useValue: { getPage: () => of(page()) } },
         { provide: WorkspaceMetadataService, useValue: metadata },
         { provide: BackendGenerationService, useValue: generation },
-        { provide: CONFIRM_ACTION, useValue: confirm }
+        { provide: CONFIRM_ACTION, useValue: confirm },
+        { provide: CONTRACT_CATALOG, useValue: { listBackendContracts: listContracts } }
       ]
     }).compileComponents();
     fixture = TestBed.createComponent(WorkspaceComponent);
@@ -286,4 +327,17 @@ function version(number: number, snapshot: unknown = { components: [] }): Metada
     isCurrent: true, snapshot, createdAt: '2026-10-05T08:00:00Z', updatedAt: '2026-10-05T08:00:00Z',
     createdBy: 'barbara', lastModifiedBy: 'barbara'
   };
+}
+
+function serverContracts(): ContractOption[] {
+  const operations = ['registerStockUnit', 'inspectStockUnit', 'scanStockUnits', 'replaceStockUnit', 'discardStockUnit'];
+  return [
+    { contractId: 'stock-unit-api', contractVersion: '2.0.0', label: 'StockUnit fixture API', operationIds: operations, pageCompatibilityChecked: false },
+    { contractId: 'stock-unit-api', contractVersion: '3.0.0', label: 'StockUnit fixture API', operationIds: operations, pageCompatibilityChecked: false },
+    {
+      contractId: 'asset-ticket-api', contractVersion: '2.0.0', label: 'AssetTicket API',
+      operationIds: ['listAssetTickets', 'createAssetTicket', 'getAssetTicketById', 'updateAssetTicket', 'deleteAssetTicket'],
+      pageCompatibilityChecked: false
+    }
+  ];
 }

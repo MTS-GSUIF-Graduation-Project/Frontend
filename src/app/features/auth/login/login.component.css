@@ -142,6 +142,12 @@ input:-webkit-autofill:focus {
   box-shadow: 0 10px 28px var(--color-auth-backdrop-glow);
 }
 
+.button--primary:hover:not(:disabled, [aria-busy='true']) {
+  background: var(--color-brand-gradient);
+  border-color: transparent;
+  filter: brightness(0.9);
+}
+
 @media (max-width: 639px) {
   .login-route {
     min-height: calc(100dvh - 7rem);

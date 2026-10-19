@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Observable, Subject, of } from 'rxjs';
-import { GenerationOutcome, GenerationSpecification } from '../models/generation.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { FailedRunDetails, GenerationOutcome, GenerationSpecification, RunDetails } from '../models/generation.model';
 import { BackendGenerationService } from '../services/backend-generation.service';
 import { ATTEMPT_RECOVERY, AttemptLookup, AttemptRecovery } from '../services/generation-ports';
 import { WorkspaceStorageService } from '../services/workspace-storage.service';
@@ -11,8 +12,9 @@ import { GenerationPanelComponent, RESTORED_ATTEMPT_MESSAGE } from './generation
 describe('GenerationPanelComponent (mocked generation service)', () => {
   let fixture: ComponentFixture<GenerationPanelComponent>;
   let responses: Subject<GenerationOutcome>[];
-  let generation: { generate: ReturnType<typeof vi.fn>; getRun: ReturnType<typeof vi.fn> };
+  let generation: { generate: ReturnType<typeof vi.fn>; getRun: ReturnType<typeof vi.fn>; getFailure: ReturnType<typeof vi.fn> };
   let recovery: AttemptRecovery;
+  let username: string;
 
   async function setUp(): Promise<void> {
     await TestBed.configureTestingModule({
@@ -20,7 +22,8 @@ describe('GenerationPanelComponent (mocked generation service)', () => {
       providers: [
         provideRouter([]),
         { provide: BackendGenerationService, useValue: generation },
-        { provide: ATTEMPT_RECOVERY, useValue: recovery }
+        { provide: ATTEMPT_RECOVERY, useValue: recovery },
+        { provide: AuthService, useValue: { getUsername: () => username } }
       ]
     }).compileComponents();
 
@@ -32,6 +35,8 @@ describe('GenerationPanelComponent (mocked generation service)', () => {
 
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
+    username = 'alice';
     responses = [];
     generation = {
       generate: vi.fn(() => {
@@ -40,7 +45,8 @@ describe('GenerationPanelComponent (mocked generation service)', () => {
         return response;
       }),
       // Run details are covered by RunResultComponent; keep them pending here.
-      getRun: vi.fn(() => new Observable(() => undefined))
+      getRun: vi.fn(() => new Observable(() => undefined)),
+      getFailure: vi.fn(() => new Observable(() => undefined))
     };
     recovery = { available: false, findRun: vi.fn() };
   });
@@ -82,6 +88,8 @@ describe('GenerationPanelComponent (mocked generation service)', () => {
     expect(request).toEqual({ pageId: 'page-9', specification: specification(), attemptId: expect.any(String) });
     expect(request.attemptId).toMatch(/^[0-9a-f-]{36}$/);
     expect(host().textContent).toContain(request.attemptId);
+    expect(button('Generating')?.getAttribute('aria-busy')).toBe('true');
+    expect(button('Generating')?.disabled).toBe(true);
   });
 
   it('does not resend or invent a new attempt after an unknown outcome', async () => {
@@ -93,7 +101,7 @@ describe('GenerationPanelComponent (mocked generation service)', () => {
     vi.advanceTimersByTime(10 * 60 * 1000);
 
     expect(generation.generate).toHaveBeenCalledOnce();
-    expect(host().textContent).toContain('Outcome unknown');
+    expect(host().textContent).toContain("We don't know yet whether generation finished");
     expect(button('Generate backend')?.disabled).toBe(true);
     expect(button('Retry with the same attempt ID')).toBeDefined();
     expect(button('Start a new attempt')).toBeDefined();
@@ -160,8 +168,53 @@ describe('GenerationPanelComponent (mocked generation service)', () => {
     click('Generate backend');
     resolve({ kind: 'failed', message: 'Generation attempt failed', tracking: { runId: 'run-7', stage: 'AI', code: 'MODEL_COMPILATION_FAILED' } });
 
-    expect(host().textContent).toContain('Generation failed at stage AI (MODEL_COMPILATION_FAILED)');
+    expect(host().textContent).toContain('Generation failed, and no backend was saved.');
     expect(generation.getRun).toHaveBeenCalledWith('run-7');
+    expect(TestBed.inject(WorkspaceStorageService).readLastRun('alice', 'page-9')?.runId).toBe('run-7');
+  });
+
+  it('keeps a failed run visible after a reload, with its stage, code and explanation read from the server', async () => {
+    generation.getRun = vi.fn(() => of(failedRun()));
+    generation.getFailure = vi.fn(() => of(failureDetails('FINAL_VALIDATION', 'RESULT_VALIDATION_FAILED')));
+    await setUp();
+    click('Generate backend');
+    resolve({ kind: 'failed', message: 'Generation attempt failed', tracking: { runId: 'run-7', stage: 'FINAL_VALIDATION', code: 'RESULT_VALIDATION_FAILED' } });
+
+    // Reload or revisit: a new component with no pending attempt in this tab.
+    TestBed.resetTestingModule();
+    sessionStorage.clear();
+    generation.getRun.mockClear();
+    generation.getFailure.mockClear();
+    await setUp();
+
+    expect(generation.getRun).toHaveBeenCalledWith('run-7');
+    expect(generation.getFailure).toHaveBeenCalledWith('run-7');
+    expect(host().textContent).toContain('Most recent run started from this browser');
+    expect(host().textContent).toContain('Final package checks');
+    expect(host().textContent).toContain('RESULT_VALIDATION_FAILED');
+    expect(host().textContent).toContain('did not pass its final checks');
+    expect(generation.generate).toHaveBeenCalledOnce();
+    expect(button('Generate backend')?.disabled).toBe(false);
+  });
+
+  it("does not show another user's last run from this browser", async () => {
+    new WorkspaceStorageService().writeLastRun('bob', 'page-9', 'run-of-bob');
+    await setUp();
+
+    expect(generation.getRun).not.toHaveBeenCalled();
+    expect(host().textContent).not.toContain('Most recent run');
+  });
+
+  it('remembers the run of a successful generation and of a rejected request that was recorded', async () => {
+    await setUp();
+    click('Generate backend');
+    resolve({ kind: 'rejected', message: 'Invalid', errors: null, tracking: { runId: 'run-rejected', stage: 'CONTRACT', code: 'VALIDATION_FAILED' } });
+    expect(TestBed.inject(WorkspaceStorageService).readLastRun('alice', 'page-9')?.runId).toBe('run-rejected');
+    expect(generation.getRun).toHaveBeenCalledWith('run-rejected');
+
+    click('Generate backend');
+    resolve({ kind: 'success', result: { runId: 'run-ok', attemptId: 'a', status: 'SUCCESS', metadataVersionId: 'v', artifactCount: 1, backendPackage: null } });
+    expect(TestBed.inject(WorkspaceStorageService).readLastRun('alice', 'page-9')?.runId).toBe('run-ok');
   });
 
   it('explains a forbidden request', async () => {
@@ -170,7 +223,8 @@ describe('GenerationPanelComponent (mocked generation service)', () => {
     resolve({ kind: 'forbidden', message: 'Access denied' });
 
     expect(host().textContent).toContain('Access denied');
-    expect(host().textContent).toContain('needs access to this page');
+    expect(host().textContent).toContain('You do not have access to generate from this page.');
+    expect(host().textContent).toContain('What you can do:');
   });
 
   it('cannot generate while blocked', async () => {
@@ -193,8 +247,68 @@ describe('GenerationPanelComponent (mocked generation service)', () => {
     click('Check attempt status');
 
     expect(recovery.findRun).toHaveBeenCalledWith(generation.generate.mock.calls[0][0].attemptId);
-    expect(host().textContent).toContain('the original request never started');
+    expect(host().textContent).toContain('no accessible record of this attempt yet');
+    expect(host().textContent).toContain('does not prove it will never start');
+    expect(host().textContent).not.toContain('never started');
+    expect(button('Retry with the same attempt ID')).toBeDefined();
     expect(generation.generate).toHaveBeenCalledOnce();
+  });
+
+  it('looks up a restored attempt once, read-only, and resolves it when the server recorded success', async () => {
+    recovery = { available: true, findRun: vi.fn((): Observable<AttemptLookup> => of(found('SUCCESS'))) };
+    writeRestoredAttempt();
+    vi.useFakeTimers();
+    await setUp();
+    vi.advanceTimersByTime(10 * 60 * 1000);
+
+    expect(recovery.findRun).toHaveBeenCalledOnce();
+    expect(recovery.findRun).toHaveBeenCalledWith(RESTORED_ID);
+    expect(generation.generate).not.toHaveBeenCalled();
+    expect(host().textContent).toContain('The server finished this attempt: it succeeded');
+    expect(host().textContent).not.toContain("We don't know yet whether generation finished");
+    expect(generation.getRun).toHaveBeenCalledWith('run-7');
+    expect(TestBed.inject(WorkspaceStorageService).readAttempt('page-9')).toBeNull();
+    expect(button('Retry with the same attempt ID')).toBeUndefined();
+    expect(button('Generate backend')?.disabled).toBe(false);
+  });
+
+  it('keeps an in-progress attempt unresolved and does not poll', async () => {
+    recovery = { available: true, findRun: vi.fn((): Observable<AttemptLookup> => of(found('IN_PROGRESS'))) };
+    writeRestoredAttempt();
+    vi.useFakeTimers();
+    await setUp();
+    vi.advanceTimersByTime(10 * 60 * 1000);
+
+    expect(recovery.findRun).toHaveBeenCalledOnce();
+    expect(host().textContent).toContain('still running on the server');
+    expect(host().textContent).toContain("We don't know yet whether generation finished");
+    expect(TestBed.inject(WorkspaceStorageService).readAttempt('page-9')).not.toBeNull();
+    expect(button('Generate backend')?.disabled).toBe(true);
+
+    click('Check again');
+    expect(recovery.findRun).toHaveBeenCalledTimes(2);
+    expect(generation.generate).not.toHaveBeenCalled();
+  });
+
+  it('reports a recorded failure found by the lookup with its stage and code', async () => {
+    recovery = {
+      available: true,
+      findRun: vi.fn((): Observable<AttemptLookup> => of({ ...found('FAILED'), failureStage: 'AI', failureCode: 'MODEL_COMPILATION_FAILED' }))
+    };
+    generation.getRun = vi.fn(() => of(failedRun()));
+    generation.getFailure = vi.fn(() => of(failureDetails('AI', 'MODEL_COMPILATION_FAILED')));
+    writeRestoredAttempt();
+    await setUp();
+
+    expect(host().textContent).toContain('it failed. What happened and what you can do are shown below.');
+    expect(host().textContent).toContain('AI generation');
+    expect(host().textContent).toContain('MODEL_COMPILATION_FAILED');
+    expect(host().textContent).toContain('The AI-written code did not compile.');
+    expect(host().textContent).not.toContain("We don't know yet whether generation finished");
+    expect(generation.getFailure).toHaveBeenCalledWith('run-7');
+    expect(TestBed.inject(WorkspaceStorageService).readLastRun('alice', 'page-9')?.runId).toBe('run-7');
+    expect(TestBed.inject(WorkspaceStorageService).readAttempt('page-9')).toBeNull();
+    expect(generation.generate).not.toHaveBeenCalled();
   });
 });
 
@@ -206,4 +320,30 @@ function specification(): GenerationSpecification {
     operationRoles: {},
     angular: { className: 'StockUnit', tableColumns: {} }
   };
+}
+
+const RESTORED_ID = '1b0e7f6a-3c1d-4e0a-9b51-2f6a0c9d8e11';
+
+function writeRestoredAttempt(): void {
+  new WorkspaceStorageService().writeAttempt({
+    attemptId: RESTORED_ID, pageId: 'page-9',
+    requestJson: JSON.stringify({ pageId: 'page-9', specification: specification(), attemptId: RESTORED_ID }),
+    submittedAt: '2026-10-19T10:00:00.000Z'
+  });
+}
+
+function found(status: string): AttemptLookup {
+  return { kind: 'found', runId: 'run-7', status, metadataVersionId: 'version-3', failureStage: null, failureCode: null };
+}
+
+function failedRun(): RunDetails {
+  return {
+    id: 'run-7', status: 'FAILED', createdAt: '2026-10-19T10:00:00Z', updatedAt: '2026-10-19T10:02:00Z',
+    metadataVersionId: 'version-3', artifacts: [], compileExitCode: null, compileOutput: null,
+    testExitCode: null, testOutput: null, validationScope: { passedTargets: [], notValidatedTargets: [] }
+  };
+}
+
+function failureDetails(failureStage: string, failureCode: string): FailedRunDetails {
+  return { runId: 'run-7', attemptId: RESTORED_ID, metadataVersionId: 'version-3', status: 'FAILED', failureStage, failureCode };
 }
