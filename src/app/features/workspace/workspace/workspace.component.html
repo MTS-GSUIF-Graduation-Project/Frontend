@@ -1,0 +1,61 @@
+<section class="workspace route-surface" aria-labelledby="page-title">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/home">Home</a><span aria-hidden="true">/</span><a routerLink="/projects">Projects</a><span aria-hidden="true">/</span><a [routerLink]="['/projects', projectId]">Project</a><span aria-hidden="true">/</span><a [routerLink]="['/projects', projectId, 'pages', pageId]">{{ page?.name || 'Page' }}</a><span aria-hidden="true">/</span><span aria-current="page">Workspace</span>
+  </nav>
+
+  <app-page-header [title]="(page?.name || 'Page') + ' workspace'" description="Edit metadata, describe the backend to generate, and inspect the generated package."></app-page-header>
+
+  <app-loading-state *ngIf="loading" label="Loading the workspace."></app-loading-state>
+  <app-error-state *ngIf="!loading && loadError" [message]="loadError" retryLabel="Try again" (retry)="load()"></app-error-state>
+
+  <ng-container *ngIf="!loading && !loadError">
+    <section class="panel" aria-labelledby="metadata-heading">
+      <h2 id="metadata-heading">Metadata</h2>
+      <p class="meta" *ngIf="current">Current version {{ current.version }} ({{ current.id }}). Saving creates a new version; earlier versions are never changed.</p>
+      <app-empty-state *ngIf="!current" message="This page has no metadata version yet. Saving creates version 1."></app-empty-state>
+      <p *ngIf="restoredDraft" class="notice status--warning">Restored your unsaved draft from this browser tab.</p>
+
+      <div class="field">
+        <label for="schema-version">Schema version</label>
+        <input id="schema-version" type="text" autocomplete="off" [value]="schemaVersion"
+          (input)="onSchemaVersionChange($any($event.target).value)">
+      </div>
+
+      <app-json-editor editorId="metadata-json" label="Metadata snapshot (JSON)" [value]="metadataText"
+        [disabled]="saving" [serverErrors]="saveFieldErrors" (valueChange)="onMetadataChange($event)"></app-json-editor>
+
+      <p *ngIf="saveError" class="notice status--error" role="alert">{{ saveError }}</p>
+      <p *ngIf="saveMessage" class="notice status--success" role="status">{{ saveMessage }}</p>
+
+      <div class="actions">
+        <button type="button" class="button button--primary" [disabled]="saving || !metadataDirty" (click)="save()">
+          {{ saving ? 'Saving' : 'Save as new version' }}
+        </button>
+        <button type="button" class="button button--secondary" [disabled]="saving || !metadataDirty" (click)="discardMetadataChanges()">
+          Discard changes
+        </button>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="specification-heading">
+      <h2 id="specification-heading">Generation specification</h2>
+
+      <div class="field">
+        <label for="contract">API contract</label>
+        <select id="contract" [value]="selectedContract" (change)="onContractChange($any($event.target).value)">
+          <option value="" [selected]="!selectedContract">Choose a contract</option>
+          <option *ngFor="let option of contracts" [value]="option.contractId + '@' + option.contractVersion"
+            [selected]="selectedContract === option.contractId + '@' + option.contractVersion">{{ option.label }}</option>
+        </select>
+        <p class="hint">The server checks that the page's metadata bindings and the entity fields match this contract.</p>
+      </div>
+
+      <app-json-editor editorId="specification-json" label="Specification (JSON)" [value]="specText"
+        hint="Entity fields, binding operations, operation roles and the Angular section. The contract chosen above sets openApi.contractId and contractVersion."
+        (valueChange)="onSpecChange($event)"></app-json-editor>
+    </section>
+
+    <app-generation-panel [pageId]="pageId" [specification]="specification" [blockedReason]="generationBlockedReason"
+      [currentVersion]="current" (activeChange)="generationActive = $event"></app-generation-panel>
+  </ng-container>
+</section>

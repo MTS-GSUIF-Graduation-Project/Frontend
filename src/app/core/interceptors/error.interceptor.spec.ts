@@ -1,8 +1,8 @@
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, HttpContext, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { errorInterceptor } from './error.interceptor';
+import { SKIP_ERROR_NOTIFICATION, errorInterceptor } from './error.interceptor';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
 
@@ -92,6 +92,28 @@ describe('errorInterceptor', () => {
     expect(notifications.show).toHaveBeenCalledWith('Projects are temporarily unavailable');
     expect(auth.clearSession).not.toHaveBeenCalled();
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('skips the global notification when the caller renders errors inline', () => {
+    const context = new HttpContext().set(SKIP_ERROR_NOTIFICATION, true);
+    http.post('/api/v1/generation/backend', {}, { context }).subscribe({ error: () => undefined });
+
+    controller.expectOne('/api/v1/generation/backend').flush({
+      clientMessage: 'Invalid generation request'
+    }, { status: 400, statusText: 'Bad Request' });
+
+    expect(notifications.show).not.toHaveBeenCalled();
+    expect(auth.clearSession).not.toHaveBeenCalled();
+  });
+
+  it('still clears the session for a 401 on a request that skips notifications', () => {
+    const context = new HttpContext().set(SKIP_ERROR_NOTIFICATION, true);
+    http.post('/api/v1/generation/backend', {}, { context }).subscribe({ error: () => undefined });
+
+    controller.expectOne('/api/v1/generation/backend').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(auth.clearSession).toHaveBeenCalledOnce();
+    expect(notifications.show).toHaveBeenCalledWith('Your session has expired. Please sign in again.');
   });
 
   it('classifies an HTML 502 by its HTTP status', () => {

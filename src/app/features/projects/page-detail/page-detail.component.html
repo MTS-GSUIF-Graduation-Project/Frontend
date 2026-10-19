@@ -19,6 +19,9 @@
         <div><dt>Updated</dt><dd>{{ item.updatedAt | date:'medium' }}</dd></div>
         <div><dt>Last modified by</dt><dd>{{ item.lastModifiedBy }}</dd></div>
       </dl>
+      <p>
+        <a class="button button--primary" [routerLink]="['/projects', projectId, 'pages', pageId, 'workspace']">Open workspace</a>
+      </p>
     </article>
 
     <div class="section-heading"><h2>Version history</h2><span>{{ totalVersions }}</span></div>

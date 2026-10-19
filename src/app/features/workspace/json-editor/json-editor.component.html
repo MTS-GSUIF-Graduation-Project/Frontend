@@ -1,0 +1,20 @@
+<div class="field">
+  <label [for]="editorId">{{ label }}</label>
+  <p *ngIf="hint" [id]="editorId + '-hint'" class="hint">{{ hint }}</p>
+  <textarea
+    [id]="editorId"
+    class="editor__input"
+    spellcheck="false"
+    autocomplete="off"
+    autocapitalize="off"
+    [value]="value"
+    [disabled]="disabled"
+    [attr.aria-invalid]="syntaxError || serverErrorList.length ? 'true' : 'false'"
+    [attr.aria-describedby]="describedBy"
+    (input)="onInput($event)"
+  ></textarea>
+  <p *ngIf="syntaxError" [id]="editorId + '-syntax'" class="field-error status--error" role="alert">{{ syntaxError }}</p>
+  <ul *ngIf="serverErrorList.length" [id]="editorId + '-server'" class="error-list status--error">
+    <li *ngFor="let error of serverErrorList"><code>{{ error.path }}</code>: {{ error.message }}</li>
+  </ul>
+</div>

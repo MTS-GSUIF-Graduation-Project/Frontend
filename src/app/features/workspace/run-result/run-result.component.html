@@ -1,0 +1,68 @@
+<section class="panel" aria-labelledby="run-heading">
+  <h3 id="run-heading">Generation run</h3>
+
+  <app-loading-state *ngIf="loading" label="Loading the generation run."></app-loading-state>
+  <app-error-state *ngIf="!loading && errorMessage" [message]="errorMessage" retryLabel="Try again" (retry)="load()"></app-error-state>
+
+  <ng-container *ngIf="!loading && !errorMessage && run as item">
+    <dl class="facts">
+      <div><dt>Status</dt><dd>{{ statusLabel(item.status) }}</dd></div>
+      <div><dt>Run ID</dt><dd>{{ item.id }}</dd></div>
+      <div><dt>Metadata version</dt><dd>{{ item.metadataVersionId }}</dd></div>
+      <div><dt>Updated</dt><dd>{{ item.updatedAt | date:'medium' }}</dd></div>
+      <ng-container *ngIf="backendPackage as pkg">
+        <div><dt>Contract</dt><dd>{{ pkg.contractId }} {{ pkg.contractVersion }}</dd></div>
+        <div><dt>Manifest SHA-256</dt><dd>{{ pkg.manifestSha256 }}</dd></div>
+      </ng-container>
+    </dl>
+
+    <div class="actions">
+      <button type="button" class="button button--secondary" (click)="load()">Refresh status</button>
+    </div>
+
+    <ng-container *ngIf="backendPackage as pkg">
+      <h3>Validation reported by the server</h3>
+      <p class="meta">Passed: {{ pkg.validationScope.passedTargets.length ? pkg.validationScope.passedTargets.join(', ') : 'none' }}</p>
+      <p class="meta">Not validated: {{ pkg.validationScope.notValidatedTargets.length ? pkg.validationScope.notValidatedTargets.join(', ') : 'none' }}</p>
+      <p class="meta">This is the server's validation scope for the package. It is not a runtime or production acceptance result.</p>
+    </ng-container>
+
+    <p *ngIf="!filesAvailable" class="notice status--warning">
+      Files are available only for a successful, committed backend package. This run's status is {{ statusLabel(item.status) }}.
+    </p>
+
+    <ng-container *ngIf="filesAvailable">
+      <div class="actions">
+        <button *ngIf="zip.available" type="button" class="button button--primary" [disabled]="zipBusy" (click)="downloadZip()">
+          {{ zipBusy ? 'Preparing ZIP' : 'Download ZIP' }}
+        </button>
+        <p *ngIf="!zip.available" class="meta">ZIP download is not available yet. You can view and download individual files below.</p>
+      </div>
+      <p *ngIf="downloadError" class="notice status--error" role="alert">{{ downloadError }}</p>
+
+      <h3>Files ({{ item.artifacts.length }})</h3>
+      <app-empty-state *ngIf="item.artifacts.length === 0" message="This run has no registered files."></app-empty-state>
+      <ul *ngIf="item.artifacts.length > 0" class="artifacts">
+        <li *ngFor="let artifact of item.artifacts">
+          <code>{{ artifact.relativePath }}</code>
+          <span class="actions">
+            <button type="button" class="button button--secondary" (click)="view(artifact.relativePath)"
+              [attr.aria-pressed]="selectedPath === artifact.relativePath">View</button>
+            <button type="button" class="button button--secondary" (click)="download(artifact.relativePath)">Download</button>
+          </span>
+        </li>
+      </ul>
+
+      <section *ngIf="selectedPath" class="panel" aria-live="polite">
+        <h3><code>{{ selectedPath }}</code></h3>
+        <app-loading-state *ngIf="viewerLoading" label="Loading file."></app-loading-state>
+        <p *ngIf="viewerError" class="notice status--error" role="alert">{{ viewerError }}</p>
+        <ng-container *ngIf="viewer as content">
+          <pre *ngIf="content.kind === 'text'" class="source" tabindex="0">{{ content.text }}</pre>
+          <p *ngIf="content.kind === 'binary'" class="meta">This is a binary file. Download it to inspect it.</p>
+          <p *ngIf="content.kind === 'too-large'" class="meta">This file is larger than {{ maxViewableKb }} KB. Download it to inspect it.</p>
+        </ng-container>
+      </section>
+    </ng-container>
+  </ng-container>
+</section>

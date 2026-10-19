@@ -49,6 +49,13 @@ describe('PageDetailComponent', () => {
     expect(host.querySelector('pre.snapshot')?.textContent).toContain('"title": "Overview"');
     expectEnvelopeFieldsToBeAbsent(text);
   });
+
+  it('links to the page workspace', () => {
+    const link = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a'))
+      .find(item => item.textContent?.trim() === 'Open workspace');
+
+    expect(link?.getAttribute('href')).toBe('/projects/project-71/pages/page-9/workspace');
+  });
 });
 
 function expectEnvelopeFieldsToBeAbsent(text: string): void {
