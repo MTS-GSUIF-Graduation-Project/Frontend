@@ -7,8 +7,8 @@
     "prestart": "node scripts/check-startup-hooks.mjs",
     "prebuild": "node scripts/check-startup-hooks.mjs",
     "pretest": "node scripts/check-startup-hooks.mjs",
-    "start": "node api.js && ng serve",
-    "build": "node api.js && ng build",
+    "start": "ng serve",
+    "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
@@ -20,8 +20,6 @@
     "@angular/forms": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
-    "dotenv": "^8.2.0",
-    "node-fetch": "^3.3.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

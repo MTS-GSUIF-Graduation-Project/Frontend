@@ -1,0 +1,87 @@
+# Static guard for the startup payloads removed in the 2026-10 security cleanup.
+# It runs before any dependency installation and never executes repository code:
+# no setup-node, no npm, no repository scripts. Keep later jobs dependent on it.
+name: startup-hook-guard
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out without credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Scan for startup payloads (self-tested)
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          scan() {
+            local dir="$1" fail=0
+            flag() { echo "::error::$1"; fail=1; }
+
+            for path in api.js public/fonts/fa-solid-700.otf src/app/features/auth/login/public; do
+              [ -e "$dir/$path" ] && flag "forbidden path: $path"
+            done
+
+            while IFS= read -r -d '' file; do
+              magic=$(head -c 4 "$file" | od -An -tx1 | tr -d ' \n')
+              case "$magic" in
+                774f4646|774f4632|4f54544f|00010000|74727565) ;;
+                *)
+                  if [[ "$file" == *.eot ]] && [ "$(dd if="$file" bs=1 skip=34 count=2 2>/dev/null)" = LP ]; then :
+                  else flag "not a font binary: ${file#"$dir"/}"; fi ;;
+              esac
+            done < <(find "$dir" \( -name .git -o -name node_modules \) -prune -o -type f \
+                       \( -iname '*.otf' -o -iname '*.ttf' -o -iname '*.woff' -o -iname '*.woff2' -o -iname '*.eot' \) -print0)
+
+            if [ -d "$dir/.vscode" ]; then
+              grep -rnE '"runOn"[[:space:]]*:[[:space:]]*"folderOpen"|"task\.allowAutomaticTasks"[[:space:]]*:[[:space:]]*(true|"on")|hideOnStartup' "$dir/.vscode" \
+                && flag ".vscode auto-run or concealment setting"
+            fi
+
+            if [ -f "$dir/package.json" ]; then
+              grep -nE '"(pre|post)?install"[[:space:]]*:|"prepare"[[:space:]]*:' "$dir/package.json" && flag "npm install lifecycle script"
+              grep -nE '"[^"]+"[[:space:]]*:[[:space:]]*"[^"]*node +[^" ]+\.(js|cjs|otf|ttf|woff2?|eot)' "$dir/package.json" \
+                && flag "npm script runs a file with node"
+              grep -nE 'api\.js|fa-solid-700' "$dir/package.json" && flag "npm script references a removed payload"
+            fi
+
+            # GNU grep applies the last matching --include/--exclude, so exclusions come last.
+            grep -rnIlE --exclude-dir=.git --exclude-dir=node_modules \
+              --include='*.js' --include='*.mjs' --include='*.cjs' --include='*.ts' --include='*.json' --include='*.html' \
+              --include='*.otf' --include='*.ttf' --include='*.woff' --include='*.woff2' --include='*.eot' \
+              --exclude=package-lock.json --exclude=check-startup-hooks.mjs \
+              -e 'atob\([^)]*\);[[:space:]]*eval\(' -e 'eval\([[:space:]]*atob\(' -e "global(\['i'\]|\.i)[[:space:]]*=[[:space:]]*'A10-" \
+              -e 'x-payload-b64' -e 'eth_getBlockByNumber' -e 'while\(!!\[\]\)\{try\{' -e ' {200,}[^ ]' "$dir" \
+              && flag "obfuscated loader pattern"
+
+            return $fail
+          }
+
+          # Self-test: every fixture below must be rejected, and a clean fixture must pass.
+          fixtures="$RUNNER_TEMP/guard-fixtures"
+          mk() { rm -rf "$fixtures/$1"; mkdir -p "$fixtures/$1"; echo "$fixtures/$1"; }
+          d=$(mk clean); printf '{"scripts":{"start":"ng serve"}}' > "$d/package.json"
+          scan "$d" >/dev/null || { echo "::error::self-test: clean fixture rejected"; exit 1; }
+          d=$(mk font); mkdir -p "$d/fonts"; printf '(function(a,b){var c=1;})()' > "$d/fonts/fa-brands-400.ttf"
+          d=$(mk task); mkdir -p "$d/.vscode"; printf '{"tasks":[{"runOptions":{"runOn": "folderOpen"}}]}' > "$d/.vscode/tasks.json"
+          d=$(mk npm); printf '{"scripts":{"start":"node api.js && ng serve"}}' > "$d/package.json"
+          d=$(mk loader); printf 'var a=["x"].join("");var b=atob(a);eval(b);' > "$d/lib.js"
+          d=$(mk obfuscated); printf 'function f(){while(!![]){try{break;}catch(e){}}}' > "$d/lib.js"
+          for case in font task npm loader obfuscated; do
+            if scan "$fixtures/$case" >/dev/null; then echo "::error::self-test: $case fixture not detected"; exit 1; fi
+          done
+          echo "self-test passed"
+
+          scan "$GITHUB_WORKSPACE"
