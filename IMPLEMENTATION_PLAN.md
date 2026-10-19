@@ -1,8 +1,8 @@
 # GSUIF Frontend Implementation Plan
 
-Status: implementation-ready for SCRUM-68 through SCRUM-71.  
+Status: implementation-ready for SCRUM-68 through SCRUM-71. SCRUM-80 scope is in section AE, which supersedes the generation restrictions below for that ticket only.  
 This document is the source of truth for the implementation agent.  
-It does not authorize generation UI, new backend endpoints, GitHub pushes, or Jira changes.
+It does not authorize new backend endpoints, GitHub pushes, or Jira changes.
 
 Backend baseline verified for this plan:
 
@@ -1599,3 +1599,28 @@ The current scope is complete only when all of the following are true:
 - Jira SCRUM-48 describes generation URLs. They are not implemented. Do not call them.
 - `PageDto` does not expose the current-version foreign key. Use `isCurrent` on version rows.
 - An earlier draft of this plan allowed a “Latest” label on the first version row. That label is withdrawn. Show “Current” only when `isCurrent` is true.
+
+---
+
+## AE. SCRUM-80 — Developer generation workspace
+
+Backend revisions verified for this section (re-verify before integrating anything new):
+
+- `develop` at `ba12ec80ea77444f059a47ff18d7e1da835ebf7a`: metadata reads, `GET`/`PUT /api/v1/pages/{pageId}/metadata/current`, and `POST /api/v1/pages/{pageId}/metadata` (`{schemaVersion, snapshot}`; the new version becomes current). The notes above about `/metadata/current` and generation URLs describe the older `99c9093` baseline and do not apply to SCRUM-80.
+- PR #47 at `9482e1fc25f405f0ec7a780b9f39ffbcf0b9bbc4`, not yet merged: `POST /api/v1/generation/backend`, `GET /api/v1/generation/runs/{id}` with `backendPackage`, `GET /runs/{id}/artifacts/download?path=`, the `X-Generation-Run-Id`, `-Failure-Stage` and `-Failure-Code` headers, attempt replay, and the versioned contract registry.
+
+Scope delivered in the frontend:
+
+- Route `projects/:projectId/pages/:pageId/workspace`, lazy `WorkspaceModule`, linked from page detail, with an unsaved-changes guard.
+- JSON metadata editor with local syntax location, backend errors by path, drafts in `sessionStorage` (`gsuif.workspace.draft.<pageId>`), and immutable-version saving.
+- Specification editor; the contract dropdown sets `openApi.contractId` and `contractVersion`.
+- BACKEND generation sent once per explicit action, with a client-generated attempt ID. Outcomes: success, rejected, failed (tracked), forbidden, not found, unauthenticated, attempt in use, attempt conflict, and unknown. No automatic retries and no automatic replacement attempt IDs. Unconfirmed attempts are kept as `gsuif.workspace.attempt.<pageId>` (the exact request JSON, never credentials). Recovery is "Retry with the same attempt ID" (exact original request) or an explicit "Start a new attempt".
+- Run details, validation scope as reported, and registered files viewed as escaped text or downloaded, only for a committed `SUCCESS` package.
+
+Pending backend contracts, isolated behind ports in `features/workspace/services/generation-ports.ts`:
+
+- `CONTRACT_CATALOG`: a static list of the BACKEND-eligible (updateMode FULL) registry pairs at the PR head above, until the contract-listing API exists.
+- `ATTEMPT_RECOVERY`: unavailable until the owner-scoped lookup by attemptId exists.
+- `PACKAGE_DOWNLOAD`: unavailable until the direct package ZIP endpoint exists. Do not build the export-destination workflow in the UI.
+
+Replace each default provider with an HTTP adapter only after its actual endpoint and DTO are verified on a backend revision.

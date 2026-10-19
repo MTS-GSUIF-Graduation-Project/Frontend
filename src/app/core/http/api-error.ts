@@ -30,6 +30,31 @@ export function toApiException(error: unknown, fallbackMessage: string): ApiExce
   );
 }
 
+/**
+ * Binary requests (`responseType: 'blob'`) deliver the JSON error envelope as a Blob.
+ * Read it so callers get the same `ApiException` as for JSON requests.
+ */
+export async function blobErrorToApiException(error: unknown, fallbackMessage: string): Promise<ApiException> {
+  if (!(error instanceof HttpErrorResponse) || !(error.error instanceof Blob)) {
+    return toApiException(error, fallbackMessage);
+  }
+
+  let body: unknown = null;
+  try {
+    body = JSON.parse(await error.error.text());
+  } catch {
+    body = null;
+  }
+
+  return toApiException(new HttpErrorResponse({
+    error: body,
+    headers: error.headers,
+    status: error.status,
+    statusText: error.statusText,
+    url: error.url ?? undefined
+  }), fallbackMessage);
+}
+
 function statusMessage(status: number, fallbackMessage: string): string {
   if (status === 0) {
     return NETWORK_ERROR_MESSAGE;

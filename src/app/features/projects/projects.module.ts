@@ -7,6 +7,10 @@ import { ProjectDetailComponent } from './project-detail/project-detail.componen
 import { ProjectListComponent } from './project-list/project-list.component';
 
 const routes: Routes = [
+  {
+    path: ':projectId/pages/:pageId/workspace',
+    loadChildren: () => import('../workspace/workspace.module').then(m => m.WorkspaceModule)
+  },
   { path: ':projectId/pages/:pageId', component: PageDetailComponent },
   { path: ':projectId', component: ProjectDetailComponent },
   { path: '', component: ProjectListComponent }

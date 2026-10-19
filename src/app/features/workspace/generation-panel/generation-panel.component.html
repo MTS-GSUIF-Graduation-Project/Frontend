@@ -1,0 +1,121 @@
+<section class="panel" aria-labelledby="generation-heading">
+  <h2 id="generation-heading">Generate backend</h2>
+  <p class="hint">
+    Generates a complete Spring Boot backend from the page's saved current metadata version
+    <ng-container *ngIf="currentVersion">(version {{ currentVersion.version }})</ng-container>
+    and the specification above. The server chooses the AI provider and model.
+  </p>
+
+  <p *ngIf="blockedReason && !submitting" class="notice status--warning">{{ blockedReason }}</p>
+
+  <div class="actions">
+    <button type="button" class="button button--primary" [disabled]="!canGenerate" (click)="generate()">
+      {{ submitting ? 'Generating' : 'Generate backend' }}
+    </button>
+  </div>
+
+  <ng-container *ngIf="submitting">
+    <app-loading-state label="Generating the backend. This can take several minutes; the server keeps working if this page loses its connection."></app-loading-state>
+    <p class="meta">Attempt ID: <code>{{ attempt?.attemptId }}</code></p>
+  </ng-container>
+
+  <ng-container *ngIf="outcome as result">
+    <ng-container [ngSwitch]="result.kind">
+      <ng-container *ngSwitchCase="'success'">
+        <p class="notice status--success" role="status">Generation succeeded.</p>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'rejected'">
+        <div class="notice status--error" role="alert">
+          <p>The server rejected the request: {{ result.kind === 'rejected' ? result.message : '' }}</p>
+          <ul *ngIf="result.kind === 'rejected' && result.errors" class="error-list">
+            <li *ngFor="let error of result.errors | keyvalue"><code>{{ error.key }}</code>: {{ error.value }}</li>
+          </ul>
+          <p *ngIf="result.kind === 'rejected' && result.tracking">
+            Recorded as failed attempt <code>{{ result.tracking.runId }}</code> ({{ result.tracking.stage }} / {{ result.tracking.code }}).
+          </p>
+        </div>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'failed'">
+        <p class="notice status--error" role="alert" *ngIf="result.kind === 'failed'">
+          Generation failed at stage {{ result.tracking.stage || 'unknown' }} ({{ result.tracking.code || 'no code' }}). No package was produced.
+        </p>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'forbidden'">
+        <p class="notice status--error" role="alert">
+          {{ result.kind === 'forbidden' ? result.message : '' }} Generation needs access to this page and its metadata versions.
+        </p>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'not-found'">
+        <p class="notice status--error" role="alert">{{ result.kind === 'not-found' ? result.message : '' }}</p>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'unauthenticated'">
+        <p class="notice status--warning" role="alert">
+          Your session ended before the server answered. Sign in again, then use "Retry with the same attempt ID".
+        </p>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'attempt-unavailable'">
+        <p class="notice status--warning" role="alert">
+          This attempt ID is already in use on the server: the original request is still running or has failed.
+          Its result cannot be retrieved from this page yet.
+        </p>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'attempt-conflict'">
+        <p class="notice status--warning" role="alert">
+          The server has this attempt ID with different inputs, for example because the page's current metadata version changed.
+        </p>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'unknown'">
+        <p class="notice status--warning" role="alert">
+          Outcome unknown. {{ result.kind === 'unknown' ? result.message : '' }}
+        </p>
+      </ng-container>
+    </ng-container>
+
+    <div *ngIf="unresolved && attempt as pending" class="panel">
+      <p class="meta">Attempt ID <code>{{ pending.attemptId }}</code>, sent {{ pending.submittedAt | date:'medium' }}.</p>
+
+      <div class="actions">
+        <button *ngIf="recovery.available" type="button" class="button button--secondary" [disabled]="checking" (click)="checkAttempt()">
+          {{ checking ? 'Checking' : 'Check attempt status' }}
+        </button>
+        <button *ngIf="canRetrySameAttempt" type="button" class="button button--secondary" [disabled]="submitting" (click)="retrySameAttempt()">
+          Retry with the same attempt ID
+        </button>
+        <button type="button" class="button button--secondary" [disabled]="submitting || !specification || !!blockedReason" (click)="startNewAttempt()">
+          Start a new attempt
+        </button>
+      </div>
+
+      <p *ngIf="canRetrySameAttempt" class="meta">
+        "Retry with the same attempt ID" re-sends the original request exactly. If the server already has this attempt,
+        it returns the recorded success or reports that the attempt is in use, without starting a second generation.
+        If the original request never reached the server, this starts generation, which uses the AI provider and may incur cost.
+      </p>
+      <p *ngIf="canRetrySameAttempt && retryDiffersFromEditors" class="meta">
+        The retry sends the original request, not your current specification.
+      </p>
+      <p class="meta">
+        "Start a new attempt" uses a new attempt ID and your current specification. If the original attempt is still running,
+        both may run and both may incur cost.
+      </p>
+      <p *ngIf="recoveryMessage" class="notice status--warning">{{ recoveryMessage }}</p>
+    </div>
+
+    <app-run-result *ngIf="result.kind === 'success'" [runId]="result.result.runId"></app-run-result>
+    <app-run-result *ngIf="result.kind === 'failed'" [runId]="result.tracking.runId"></app-run-result>
+    <p *ngIf="result.kind === 'success' && currentVersion && result.result.metadataVersionId !== currentVersion.id" class="notice status--warning">
+      The server generated from metadata version {{ result.result.metadataVersionId }}, which is not the version shown on this page.
+      The page's current version may have changed in the meantime.
+    </p>
+  </ng-container>
+
+  <app-run-result *ngIf="recoveredRunId" [runId]="recoveredRunId"></app-run-result>
+</section>
