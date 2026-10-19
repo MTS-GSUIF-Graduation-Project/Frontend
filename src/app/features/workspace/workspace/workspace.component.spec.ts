@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
+import { CONFIRM_ACTION } from '../../../core/guards/unsaved-changes.guard';
 import { ApiException } from '../../../core/models/api-response.model';
 import { MetadataVersion } from '../../projects/models/browser.model';
 import { MetadataBrowserService } from '../../projects/services/metadata-browser.service';
@@ -15,6 +16,7 @@ describe('WorkspaceComponent (mocked services)', () => {
   let component: WorkspaceComponent;
   let metadata: { getCurrent: ReturnType<typeof vi.fn>; createVersion: ReturnType<typeof vi.fn> };
   let generation: { generate: ReturnType<typeof vi.fn>; getRun: ReturnType<typeof vi.fn> };
+  let confirm: ReturnType<typeof vi.fn>;
 
   async function render(current: MetadataVersion | null = version(3)): Promise<void> {
     metadata.getCurrent.mockReturnValue(of(current));
@@ -25,7 +27,8 @@ describe('WorkspaceComponent (mocked services)', () => {
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ projectId: 'project-71', pageId: 'page-9' }) } } },
         { provide: MetadataBrowserService, useValue: { getPage: () => of(page()) } },
         { provide: WorkspaceMetadataService, useValue: metadata },
-        { provide: BackendGenerationService, useValue: generation }
+        { provide: BackendGenerationService, useValue: generation },
+        { provide: CONFIRM_ACTION, useValue: confirm }
       ]
     }).compileComponents();
 
@@ -38,6 +41,7 @@ describe('WorkspaceComponent (mocked services)', () => {
     sessionStorage.clear();
     metadata = { getCurrent: vi.fn(), createVersion: vi.fn() };
     generation = { generate: vi.fn(), getRun: vi.fn(() => new Observable(() => undefined)) };
+    confirm = vi.fn(() => true);
   });
 
   function host(): HTMLElement {
@@ -183,6 +187,71 @@ describe('WorkspaceComponent (mocked services)', () => {
     expect(button('Generate backend')?.disabled).toBe(true);
   });
 
+  it('offers only the backend-supported schema versions', async () => {
+    await render(null);
+
+    const options = Array.from(host().querySelectorAll('#schema-version option')).map(option => option.textContent?.trim());
+    expect(options).toEqual(['Choose a schema version', '1.0.0', '1.1.0', '1.2.0']);
+  });
+
+  it('inserts a starter into an empty page without saving it', async () => {
+    await render(null);
+
+    type('#metadata-starter', 'single-text-field', 'change');
+    button('Insert into editor')?.click();
+    fixture.detectChanges();
+
+    expect(JSON.parse(component.metadataText)).toEqual({
+      components: [expect.objectContaining({ type: 'text-field', label: 'Test' })],
+      apiBindings: []
+    });
+    expect(component.schemaVersion).toBe('1.0.0');
+    expect(host().textContent).toContain('It is not saved yet.');
+    expect(metadata.createVersion).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('saves the inserted starter as version 1 only when the user clicks save', async () => {
+    metadata.createVersion.mockReturnValue(of(version(1, { components: [], apiBindings: [] })));
+    await render(null);
+
+    type('#metadata-starter', 'empty', 'change');
+    button('Insert into editor')?.click();
+    fixture.detectChanges();
+    expect(metadata.createVersion).not.toHaveBeenCalled();
+
+    button('Save as new version')?.click();
+    fixture.detectChanges();
+
+    expect(metadata.createVersion).toHaveBeenCalledOnce();
+    expect(metadata.createVersion).toHaveBeenCalledWith('page-9', '1.0.0', { components: [], apiBindings: [] });
+    expect(host().textContent).toContain('Version 1 saved.');
+  });
+
+  it('asks before replacing existing editor text and keeps it when declined', async () => {
+    confirm.mockReturnValue(false);
+    await render();
+
+    type('#metadata-starter', 'empty', 'change');
+    button('Insert into editor')?.click();
+    fixture.detectChanges();
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(component.metadataDirty).toBe(false);
+  });
+
+  it('refuses a starter that does not support the selected schema version', async () => {
+    await render();
+
+    type('#metadata-starter', 'single-text-field', 'change');
+    button('Insert into editor')?.click();
+    fixture.detectChanges();
+
+    expect(host().textContent).toContain('This starter supports schema 1.0.0. Choose one of those schema versions first.');
+    expect(component.metadataDirty).toBe(false);
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
   it('shows a load error with a retry', async () => {
     metadata.getCurrent.mockReturnValue(throwError(() => new ApiException(403, 'Access denied', null)));
     await TestBed.configureTestingModule({
@@ -192,7 +261,8 @@ describe('WorkspaceComponent (mocked services)', () => {
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ projectId: 'project-71', pageId: 'page-9' }) } } },
         { provide: MetadataBrowserService, useValue: { getPage: () => of(page()) } },
         { provide: WorkspaceMetadataService, useValue: metadata },
-        { provide: BackendGenerationService, useValue: generation }
+        { provide: BackendGenerationService, useValue: generation },
+        { provide: CONFIRM_ACTION, useValue: confirm }
       ]
     }).compileComponents();
     fixture = TestBed.createComponent(WorkspaceComponent);

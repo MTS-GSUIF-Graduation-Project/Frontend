@@ -5,9 +5,10 @@ import { forkJoin } from 'rxjs';
 import { ApiException } from '../../../core/models/api-response.model';
 import { MetadataVersion, Page } from '../../projects/models/browser.model';
 import { MetadataBrowserService } from '../../projects/services/metadata-browser.service';
-import { LeaveWarning } from '../guards/unsaved-changes.guard';
+import { CONFIRM_ACTION, LeaveWarning } from '../../../core/guards/unsaved-changes.guard';
 import { GenerationSpecification } from '../models/generation.model';
 import { isJsonObject, parseJson } from '../models/json-text';
+import { METADATA_STARTERS, MetadataStarter, SUPPORTED_SCHEMA_VERSIONS } from '../models/metadata-starters';
 import { CONTRACT_CATALOG, ContractOption } from '../services/generation-ports';
 import { WorkspaceMetadataService } from '../services/workspace-metadata.service';
 import { WorkspaceStorageService } from '../services/workspace-storage.service';
@@ -57,6 +58,10 @@ export class WorkspaceComponent implements OnInit, LeaveWarning {
   saveFieldErrors: Record<string, string> | null = null;
   saveMessage = '';
 
+  readonly starters = METADATA_STARTERS;
+  selectedStarter = '';
+  starterMessage = '';
+
   specText = SPECIFICATION_TEMPLATE;
   selectedContract = '';
   specification: GenerationSpecification | null = null;
@@ -68,8 +73,19 @@ export class WorkspaceComponent implements OnInit, LeaveWarning {
   private readonly metadata = inject(WorkspaceMetadataService);
   private readonly storage = inject(WorkspaceStorageService);
   private readonly catalog = inject(CONTRACT_CATALOG);
+  private readonly confirm = inject(CONFIRM_ACTION);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetector = inject(ChangeDetectorRef);
+
+  get starter(): MetadataStarter | null {
+    return this.starters.find(starter => starter.id === this.selectedStarter) ?? null;
+  }
+
+  /** Backend-supported versions, plus the current version's own value if it is another one. */
+  get schemaVersionOptions(): string[] {
+    const saved = this.current?.schemaVersion;
+    return saved && !SUPPORTED_SCHEMA_VERSIONS.includes(saved) ? [...SUPPORTED_SCHEMA_VERSIONS, saved] : [...SUPPORTED_SCHEMA_VERSIONS];
+  }
 
   get metadataDirty(): boolean {
     return this.metadataText !== this.savedMetadataText || this.schemaVersion !== this.savedSchemaVersion;
@@ -136,6 +152,33 @@ export class WorkspaceComponent implements OnInit, LeaveWarning {
   onContractChange(key: string): void {
     this.selectedContract = key;
     this.refreshSpecification();
+    this.persistDraft();
+  }
+
+  /** Fills the editor from the chosen starter. It never saves; that stays an explicit action. */
+  insertStarter(): void {
+    const starter = this.starter;
+    if (!starter || this.saving) {
+      return;
+    }
+    if (this.schemaVersion && !starter.schemaVersions.includes(this.schemaVersion)) {
+      this.starterMessage = `This starter supports schema ${starter.schemaVersions.join(', ')}. Choose one of those schema versions first.`;
+      return;
+    }
+
+    const text = JSON.stringify(starter.snapshot, null, 2);
+    if (this.metadataText.trim() && this.metadataText !== text
+      && !this.confirm('Replace the editor content with this template? Your current snapshot text will be lost.')) {
+      return;
+    }
+
+    this.metadataText = text;
+    if (!this.schemaVersion) {
+      this.schemaVersion = starter.schemaVersions[0];
+    }
+    this.restoredDraft = false;
+    this.saveMessage = '';
+    this.starterMessage = `Inserted "${starter.label}" with schema ${this.schemaVersion}. It is not saved yet.`;
     this.persistDraft();
   }
 

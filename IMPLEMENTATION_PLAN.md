@@ -1624,3 +1624,24 @@ Pending backend contracts, isolated behind ports in `features/workspace/services
 - `PACKAGE_DOWNLOAD`: unavailable until the direct package ZIP endpoint exists. Do not build the export-destination workflow in the UI.
 
 Replace each default provider with an HTTP adapter only after its actual endpoint and DTO are verified on a backend revision.
+
+---
+
+## AF. Project and page creation (no Jira key yet; branch `feature/project-page-creation`)
+
+Backend contracts merged on `develop` at `ba12ec80ea77444f059a47ff18d7e1da835ebf7a` (identical on PR #47 head `9482e1fc`):
+
+- `POST /api/v1/projects` with `{name, description}` → 201 `ProjectDto`. `name` is required, trimmed, at most 200 characters, and unique (`uk_gsuif_project_name`). Needs the `GsuifProject` entity grant.
+- `POST /api/v1/projects/{projectId}/pages` with `{name, route}` → 201 `PageDto`. `name` is required, at most 200 characters; `route` is optional, at most 255, blank means none. Name and route are each unique within the project. There is no route format rule. Needs the `GsuifPage` grant; an unknown project is 404.
+- Duplicates are 400 with `errors.name` or `errors.route`, including database-level races (`GlobalExceptionHandler` constraint mapping). SCRUM-74 is still deciding the project-wide contract for those races.
+- First metadata version: the existing `POST /api/v1/pages/{pageId}/metadata`. Supported schema versions are 1.0.0, 1.1.0 and 1.2.0; every snapshot needs exactly `components` and `apiBindings` arrays.
+
+Frontend behavior:
+
+- Routes `/projects/new` and `/projects/:projectId/pages/new` come before their parameter routes. After a page is created, its workspace opens to start version 1.
+- One POST per explicit submit. There is no idempotency key, so a network failure, 408 or 5xx is reported as an unknown outcome. The form then offers an explicit read-only check of the most recently created records and an explicit "Submit again"; it never resubmits on its own.
+- Server field errors appear under their fields. Permission is enforced by the backend only; buttons are not hidden by role.
+- Drafts are kept in sessionStorage per signed-in username and form context (`gsuif.form-draft.<user>.<context>`).
+- The workspace offers the backend-supported schema versions and two starters (an empty snapshot and the backend test's one-text-field 1.0.0 example). Inserting a starter only fills the editor; saving stays explicit.
+
+Out of scope: editing and deleting projects or pages, and dynamic contract import.

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
-import { CONFIRM_LEAVE, LeaveWarning, unsavedChangesGuard } from './unsaved-changes.guard';
+import { AuthService } from '../services/auth.service';
+import { CONFIRM_ACTION, LeaveWarning, unsavedChangesGuard } from './unsaved-changes.guard';
 
 describe('unsavedChangesGuard', () => {
   let loggedIn: boolean;
@@ -13,7 +13,7 @@ describe('unsavedChangesGuard', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { isLoggedIn: () => loggedIn } },
-        { provide: CONFIRM_LEAVE, useValue: confirm }
+        { provide: CONFIRM_ACTION, useValue: confirm }
       ]
     });
   });

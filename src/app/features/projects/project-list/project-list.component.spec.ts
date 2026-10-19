@@ -51,8 +51,16 @@ describe('ProjectListComponent', () => {
     response.complete();
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('No projects found.');
+    expect(text).toContain('No projects yet. Create a project');
     expect(text).not.toContain('Loading projects.');
+  });
+
+  it('offers project creation whether or not projects exist', () => {
+    render();
+
+    const link = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a'))
+      .find(item => item.textContent?.trim() === 'Create project');
+    expect(link?.getAttribute('href')).toBe('/projects/new');
   });
 
   function render(): void {

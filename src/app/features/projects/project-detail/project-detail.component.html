@@ -21,7 +21,8 @@
     </article>
 
     <div class="section-heading"><h2>Pages</h2><span>{{ totalPages }}</span></div>
-    <app-empty-state *ngIf="pages.length === 0" message="No pages found in this project."></app-empty-state>
+    <p class="toolbar"><a class="button button--primary" [routerLink]="['/projects', projectId, 'pages', 'new']">Create page</a></p>
+    <app-empty-state *ngIf="pages.length === 0" message="This project has no pages yet. Create a page, then describe its metadata in the workspace."></app-empty-state>
     <div *ngIf="pages.length > 0" class="card-grid">
       <article *ngFor="let page of pages" class="metadata-card">
         <h3><a [routerLink]="['/projects', projectId, 'pages', page.id]">{{ page.name }}</a></h3>

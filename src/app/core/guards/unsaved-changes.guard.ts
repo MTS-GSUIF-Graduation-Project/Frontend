@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { InjectionToken, inject } from '@angular/core';
 import { CanDeactivateFn } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
+import { AuthService } from '../services/auth.service';
 
 /** Implemented by routes that can hold work the user would lose by leaving. */
 export interface LeaveWarning {
@@ -9,7 +9,8 @@ export interface LeaveWarning {
   leaveWarning(): string | null;
 }
 
-export const CONFIRM_LEAVE = new InjectionToken<(message: string) => boolean>('CONFIRM_LEAVE', {
+/** Asks the user to confirm an action that would discard work; true means go ahead. */
+export const CONFIRM_ACTION = new InjectionToken<(message: string) => boolean>('CONFIRM_ACTION', {
   providedIn: 'root',
   factory: () => {
     const view = inject(DOCUMENT).defaultView;
@@ -26,5 +27,5 @@ export const unsavedChangesGuard: CanDeactivateFn<LeaveWarning> = component => {
   if (!warning || !inject(AuthService).isLoggedIn()) {
     return true;
   }
-  return inject(CONFIRM_LEAVE)(warning);
+  return inject(CONFIRM_ACTION)(warning);
 };

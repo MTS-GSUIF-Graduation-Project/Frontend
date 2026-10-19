@@ -27,6 +27,18 @@ export interface Page {
   lastModifiedBy: string;
 }
 
+/** `POST /api/v1/projects` body (backend `CreateProjectRequest`). */
+export interface CreateProjectRequest {
+  name: string;
+  description: string | null;
+}
+
+/** `POST /api/v1/projects/{projectId}/pages` body (backend `CreatePageRequest`). */
+export interface CreatePageRequest {
+  name: string;
+  route: string | null;
+}
+
 export interface MetadataVersion {
   id: string;
   pageId: string;
